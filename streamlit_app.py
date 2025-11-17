@@ -132,13 +132,7 @@ def montar_perfil_texto(nome_orgao, respostas_dict, medias_dimensao, observatori
     return "\n".join(linhas)
 
 
-def chamar_ia(client, perfil_texto, user_message, chat_history):
-    """
-    client: OpenAI()
-    perfil_texto: texto com o diagnóstico e comparação
-    user_message: mensagem atual do usuário no chat
-    chat_history: lista de dicts [{'role': 'user'/'assistant', 'content': '...'}, ...]
-    """
+def chamar_ia(perfil_texto, user_message, chat_history):
     system_prompt = """
 Você é um assistente de IA especializado em gestão pública e maturidade institucional.
 Sua função é analisar o diagnóstico de um órgão público e sugerir caminhos práticos
@@ -146,15 +140,12 @@ para evoluir a maturidade nas diferentes dimensões (governança, processos, pes
 dados, tecnologia, etc.).
 
 Regras:
-- Use SEMPRE as informações do diagnóstico e da comparação com a base fornecida.
+- Use sempre as informações do diagnóstico e da comparação com a base fornecida.
 - Comece resumindo brevemente os principais pontos fortes e fracos.
 - Ajude o usuário a priorizar: indique por onde começar e o que é mais crítico.
 - Traga sugestões realistas para o contexto de órgãos públicos brasileiros
   (considerando restrições de tempo, orçamento, burocracia).
-- Evite jargão excessivo; explique os conceitos em linguagem clara.
-- Não prometa nada impossível (por ex.: "resolver todos os problemas rapidamente").
-- Se o usuário perguntar algo fora do escopo, responda brevemente e puxe de volta
-  para o tema de maturidade institucional e melhoria do órgão.
+- Evite jargão excessivo; explique em linguagem clara.
 """
     messages = [
         {"role": "system", "content": system_prompt},
@@ -164,13 +155,18 @@ Regras:
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=messages,
-        temperature=0.3,
-    )
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",   # <- modelo pequeno, estável e liberado
+            messages=messages,
+            temperature=0.3,
+        )
+        return response.choices[0].message["content"]
+    except Exception as e:
+        # Mostra o erro na tela pra debug
+        st.error(f"Erro ao chamar a API de IA: {e}")
+        return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
-    return response.choices[0].message.content
 
 
 # -------------------
@@ -248,20 +244,18 @@ with col_chat:
                 st.markdown(msg["content"])
 
         prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
-        if prompt:
-            # mensagem do usuário
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+if prompt:
+    st.session_state.chat_history.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-            # chamada à IA
-            with st.chat_message("assistant"):
-                with st.spinner("Gerando resposta da IA..."):
-                    resposta = chamar_ia(
-                        st.session_state.diagnostico_perfil_texto,
-                        prompt,
-                        st.session_state.chat_history
-                    )
-                    st.markdown(resposta)
+    with st.chat_message("assistant"):
+        with st.spinner("Gerando resposta da IA..."):
+            resposta = chamar_ia(
+                st.session_state.diagnostico_perfil_texto,
+                prompt,
+                st.session_state.chat_history
+            )
+            st.markdown(resposta)
 
-            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+    st.session_state.chat_history.append({"role": "assistant", "content": resposta})
