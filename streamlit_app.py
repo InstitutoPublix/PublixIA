@@ -19,11 +19,10 @@ st.write(
 # API KEY
 # -------------------
 
-# Você pode colocar a chave em st.secrets ou pedir na interface
-api_key = st.sidebar.text_input("Informe sua OpenAI API Key", type="password")
-if not api_key:
-    st.sidebar.info("Informe a API Key para ativar o chat.")
-client = OpenAI(api_key=api_key) if api_key else None
+if "OPENAI_API_KEY" in st.secrets:
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+else:
+    st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
 
 # -------------------
 # CARREGAR DADOS DO OBSERVATÓRIO
