@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
-import openai
 import os
 
 
@@ -10,9 +9,11 @@ import os
 # -------------------
 
 if "OPENAI_API_KEY" in st.secrets:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 else:
+    client = None
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
+
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -132,7 +133,7 @@ def montar_perfil_texto(nome_orgao, respostas_dict, medias_dimensao, observatori
     return "\n".join(linhas)
 
 
-def chamar_ia(perfil_texto, user_message, chat_history):
+def chamar_ia(client, perfil_texto, user_message, chat_history):
     system_prompt = """
 Você é um assistente de IA especializado em gestão pública e maturidade institucional.
 Sua função é analisar o diagnóstico de um órgão público e sugerir caminhos práticos
@@ -156,16 +157,16 @@ Regras:
     messages.append({"role": "user", "content": user_message})
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",   # <- modelo pequeno, estável e liberado
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.3,
         )
-        return response.choices[0].message["content"]
+        return resp.choices[0].message.content
     except Exception as e:
-        # Mostra o erro na tela pra debug
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
+
 
 
 
@@ -235,27 +236,27 @@ with col_chat:
 
     if st.session_state.diagnostico_perfil_texto is None:
         st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
-    elif "OPENAI_API_KEY" not in st.secrets:
-        st.warning("API Key não encontrada nos secrets do Streamlit.")
+    elif client is None:
+        st.warning("API Key não encontrada ou cliente de IA não inicializado.")
     else:
-        # Mostrar histórico
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
         prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
-if prompt:
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+        if prompt:
+            st.session_state.chat_history.append({"role": "user", "content": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Gerando resposta da IA..."):
-            resposta = chamar_ia(
-                st.session_state.diagnostico_perfil_texto,
-                prompt,
-                st.session_state.chat_history
-            )
-            st.markdown(resposta)
+            with st.chat_message("assistant"):
+                with st.spinner("Gerando resposta da IA..."):
+                    resposta = chamar_ia(
+                        client,
+                        st.session_state.diagnostico_perfil_texto,
+                        prompt,
+                        st.session_state.chat_history,
+                    )
+                    st.markdown(resposta)
 
-    st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
