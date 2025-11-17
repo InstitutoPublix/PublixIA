@@ -66,6 +66,7 @@ if observatorio_df is not None and "dimension" in observatorio_df.columns and "m
 # DEFINIR QUESTÕES DO DIAGNÓSTICO (EXEMPLO)
 # -------------------
 # Aqui você depois substitui pelo seu conjunto completo de ~70 questões.
+
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidad...xternos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
