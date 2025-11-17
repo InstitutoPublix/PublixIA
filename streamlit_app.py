@@ -256,7 +256,7 @@ if "chat_history" not in st.session_state:
 
 col_form, col_chat = st.columns([2, 3])
 
-# -------- COLUNA ESQUERDA: FORMULÁRIO --------
+# -------- COLUNA ESQUERDA: FORMULÁRIO -------
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
