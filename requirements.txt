@@ -1,5 +1,5 @@
 streamlit==1.38.0
 pandas==2.2.2
 numpy==1.26.4
-openai==1.37.0
+openai==0.28.1
 matplotlib==3.8.4

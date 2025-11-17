@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-import os
-from openai import OpenAI
+import numpy as np
+import openai
+
 
 
 
@@ -10,12 +11,10 @@ from openai import OpenAI
 # -------------------
 
 if "OPENAI_API_KEY" in st.secrets:
-    # joga a chave para variável de ambiente
-    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-    client = OpenAI()  # pega a key automaticamente do env
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:
-    client = None
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
+
 
 
 
@@ -137,7 +136,7 @@ def montar_perfil_texto(nome_orgao, respostas_dict, medias_dimensao, observatori
     return "\n".join(linhas)
 
 
-def chamar_ia(client, perfil_texto, user_message, chat_history):
+def chamar_ia(perfil_texto, user_message, chat_history):
     system_prompt = """
 Você é um assistente de IA especializado em gestão pública e maturidade institucional.
 Sua função é analisar o diagnóstico de um órgão público e sugerir caminhos práticos
@@ -148,7 +147,8 @@ Regras:
 - Use sempre as informações do diagnóstico e da comparação com a base fornecida.
 - Comece resumindo brevemente os principais pontos fortes e fracos.
 - Ajude o usuário a priorizar: indique por onde começar e o que é mais crítico.
-- Traga sugestões realistas para o contexto de órgãos públicos brasileiros.
+- Traga sugestões realistas para o contexto de órgãos públicos brasileiros
+  (considerando restrições de tempo, orçamento, burocracia).
 - Evite jargão excessivo; explique em linguagem clara.
 """
     messages = [
@@ -160,12 +160,12 @@ Regras:
     messages.append({"role": "user", "content": user_message})
 
     try:
-        resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",  # nome do modelo enviado direto pra API
             messages=messages,
             temperature=0.3,
         )
-        return resp.choices[0].message.content
+        return response.choices[0].message["content"]
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
@@ -240,8 +240,8 @@ with col_chat:
 
     if st.session_state.diagnostico_perfil_texto is None:
         st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
-    elif client is None:
-        st.warning("API Key não encontrada ou cliente de IA não inicializado.")
+    elif "OPENAI_API_KEY" not in st.secrets:
+        st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
@@ -256,11 +256,11 @@ with col_chat:
             with st.chat_message("assistant"):
                 with st.spinner("Gerando resposta da IA..."):
                     resposta = chamar_ia(
-                        client,
                         st.session_state.diagnostico_perfil_texto,
                         prompt,
-                        st.session_state.chat_history,
+                        st.session_state.chat_history
                     )
                     st.markdown(resposta)
 
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+
