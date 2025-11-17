@@ -263,20 +263,31 @@ with col_form:
     nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
 
     with st.form("form_diagnostico"):
-        st.write("Responda cada afirmação numa escala de 0 a 3:")
-        respostas = {}
+    st.write("Responda cada afirmação numa escala de 0 a 3:")
+    respostas = {}
 
-        for q in QUESTOES:
-            respostas[q["id"]] = st.slider(
-                q["texto"],
-                min_value=0,
-                max_value=3,
-                value=1,
-                step=1,
-                help="0 = Inexistente | 3 = Bem estruturado"
-            )
+    # pega lista de dimensões únicas
+    dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
 
-        submitted = st.form_submit_button("Gerar diagnóstico")
+    # loop por dimensão
+    for dim in dimensoes:
+        with st.expander(f"📌 {dim}", expanded=False):
+            # perguntas daquela dimensão
+            perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
+
+            for q in perguntas_dim:
+                respostas[q["id"]] = st.slider(
+                    label=f"{q['id']} — {q['texto']}",
+                    min_value=0,
+                    max_value=3,
+                    value=1,
+                    step=1,
+                    help="0 = Inexistente | 3 = Bem estruturado",
+                    key=f"slider_{q['id']}"
+                )
+
+    submitted = st.form_submit_button("Gerar diagnóstico")
+
 
     if submitted:
         st.session_state.diagnostico_respostas = respostas
