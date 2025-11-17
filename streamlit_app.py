@@ -239,8 +239,8 @@ with col_chat:
 
     if st.session_state.diagnostico_perfil_texto is None:
         st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
-    elif not client:
-        st.warning("Informe sua OpenAI API Key na barra lateral para ativar o chat.")
+    elif "OPENAI_API_KEY" not in st.secrets:
+        st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
         # Mostrar histórico
         for msg in st.session_state.chat_history:
@@ -249,21 +249,19 @@ with col_chat:
 
         prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
         if prompt:
-            # Adiciona mensagem do usuário
+            # mensagem do usuário
             st.session_state.chat_history.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            # Chama IA
+            # chamada à IA
             with st.chat_message("assistant"):
                 with st.spinner("Gerando resposta da IA..."):
                     resposta = chamar_ia(
-                        client,
                         st.session_state.diagnostico_perfil_texto,
                         prompt,
                         st.session_state.chat_history
                     )
                     st.markdown(resposta)
 
-            # Salva resposta no histórico
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
