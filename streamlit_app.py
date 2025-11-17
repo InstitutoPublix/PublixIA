@@ -256,36 +256,37 @@ if "chat_history" not in st.session_state:
 
 col_form, col_chat = st.columns([2, 3])
 
-# -------- COLUNA ESQUERDA: FORMULÁRIO -------
+# -------- COLUNA ESQUERDA: FORMULÁRIO --------
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
     nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
 
     with st.form("form_diagnostico"):
-    st.write("Responda cada afirmação numa escala de 0 a 3:")
+        st.write("Responda cada afirmação numa escala de 0 a 3:")
 
-    respostas = {}
+        respostas = {}
 
-    # lista de dimensões únicas
-    dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
+        # lista de dimensões únicas
+        dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
 
-    # loop por dimensão
-    for dim in dimensoes:
-        with st.expander(f"📌 {dim}", expanded=False):
-            perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
+        # loop por dimensão
+        for dim in dimensoes:
+            with st.expander(f"📌 {dim}", expanded=False):
+                perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
 
-            for q in perguntas_dim:
-                respostas[q["id"]] = st.slider(
-                    label=f"{q['id']} — {q['texto']}",
-                    min_value=0,
-                    max_value=3,
-                    value=1,
-                    step=1,
-                    help="0 = Inexistente | 3 = Bem estruturado"
-                )
+                for q in perguntas_dim:
+                    respostas[q["id"]] = st.slider(
+                        label=f"{q['id']} — {q['texto']}",
+                        min_value=0,
+                        max_value=3,
+                        value=1,
+                        step=1,
+                        help="0 = Inexistente | 3 = Bem estruturado"
+                    )
 
-    submitted = st.form_submit_button("Gerar diagnóstico")
+        submitted = st.form_submit_button("Gerar diagnóstico")
+
 
 
 
