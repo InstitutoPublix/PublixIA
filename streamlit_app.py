@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
-from openai import OpenAI
 import os
+from openai import OpenAI
+
 
 
 # -------------------
@@ -9,10 +10,13 @@ import os
 # -------------------
 
 if "OPENAI_API_KEY" in st.secrets:
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    # joga a chave para variável de ambiente
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    client = OpenAI()  # pega a key automaticamente do env
 else:
     client = None
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
+
 
 
 # -------------------
@@ -144,8 +148,7 @@ Regras:
 - Use sempre as informações do diagnóstico e da comparação com a base fornecida.
 - Comece resumindo brevemente os principais pontos fortes e fracos.
 - Ajude o usuário a priorizar: indique por onde começar e o que é mais crítico.
-- Traga sugestões realistas para o contexto de órgãos públicos brasileiros
-  (considerando restrições de tempo, orçamento, burocracia).
+- Traga sugestões realistas para o contexto de órgãos públicos brasileiros.
 - Evite jargão excessivo; explique em linguagem clara.
 """
     messages = [
@@ -166,6 +169,7 @@ Regras:
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
+
 
 
 
