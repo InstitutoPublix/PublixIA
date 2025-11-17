@@ -264,15 +264,15 @@ with col_form:
 
     with st.form("form_diagnostico"):
     st.write("Responda cada afirmação numa escala de 0 a 3:")
+
     respostas = {}
 
-    # pega lista de dimensões únicas
+    # lista de dimensões únicas
     dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
 
     # loop por dimensão
     for dim in dimensoes:
         with st.expander(f"📌 {dim}", expanded=False):
-            # perguntas daquela dimensão
             perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
 
             for q in perguntas_dim:
@@ -282,11 +282,11 @@ with col_form:
                     max_value=3,
                     value=1,
                     step=1,
-                    help="0 = Inexistente | 3 = Bem estruturado",
-                    key=f"slider_{q['id']}"
+                    help="0 = Inexistente | 3 = Bem estruturado"
                 )
 
     submitted = st.form_submit_button("Gerar diagnóstico")
+
 
 
     if submitted:
