@@ -1,7 +1,18 @@
 import streamlit as st
 import pandas as pd
 from openai import OpenAI
+import openai
 import os
+
+
+# -------------------
+# API KEY
+# -------------------
+
+if "OPENAI_API_KEY" in st.secrets:
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+else:
+    st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -15,14 +26,8 @@ st.write(
     "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
 )
 
-# -------------------
-# API KEY
-# -------------------
 
-if "OPENAI_API_KEY" in st.secrets:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-else:
-    st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
+
 
 # -------------------
 # CARREGAR DADOS DO OBSERVATÓRIO
