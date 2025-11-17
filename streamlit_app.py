@@ -30,6 +30,19 @@ st.write(
     "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
 )
 
+st.markdown("""
+<style>
+.scroll-box {
+    max-height: 450px;      /* altura da caixa de perguntas */
+    overflow-y: auto;       /* ativa o scroll vertical */
+    padding-right: 10px;    /* espaço pra não cortar o slider */
+    border: 1px solid #333; /* opcional: borda discreta */
+    border-radius: 8px;
+    padding: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 
 
@@ -263,29 +276,34 @@ with col_form:
     nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
 
     with st.form("form_diagnostico"):
-        st.write("Responda cada afirmação numa escala de 0 a 3:")
+    st.write("Responda cada afirmação numa escala de 0 a 3:")
 
-        respostas = {}
+    respostas = {}
 
-        # lista de dimensões únicas
-        dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
+    dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
 
-        # loop por dimensão
-        for dim in dimensoes:
-            with st.expander(f"📌 {dim}", expanded=False):
-                perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
+    # 🔹 começa a caixa com scroll
+    st.markdown('<div class="scroll-box">', unsafe_allow_html=True)
 
-                for q in perguntas_dim:
-                    respostas[q["id"]] = st.slider(
-                        label=f"{q['id']} — {q['texto']}",
-                        min_value=0,
-                        max_value=3,
-                        value=1,
-                        step=1,
-                        help="0 = Inexistente | 3 = Bem estruturado"
-                    )
+    for dim in dimensoes:
+        with st.expander(f"📌 {dim}", expanded=False):
+            perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
 
-        submitted = st.form_submit_button("Gerar diagnóstico")
+            for q in perguntas_dim:
+                respostas[q["id"]] = st.slider(
+                    label=f"{q['id']} — {q['texto']}",
+                    min_value=0,
+                    max_value=3,
+                    value=1,
+                    step=1,
+                    help="0 = Inexistente | 3 = Bem estruturado"
+                )
+
+    # 🔹 fecha a caixa com scroll
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    submitted = st.form_submit_button("Gerar diagnóstico")
+
 
 
 
