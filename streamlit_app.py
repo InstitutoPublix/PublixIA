@@ -2,9 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import openai
-
-
-
+import math
 
 # -------------------
 # API KEY
@@ -14,9 +12,6 @@ if "OPENAI_API_KEY" in st.secrets:
     openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
-
-
-
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -30,25 +25,26 @@ st.write(
     "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
 )
 
-st.markdown("""
+st.markdown(
+    """
 <style>
 .scroll-box {
-    max-height: 450px;      /* altura da caixa de perguntas */
-    overflow-y: auto;       /* ativa o scroll vertical */
-    padding-right: 10px;    /* espaço pra não cortar o slider */
-    border: 1px solid #333; /* opcional: borda discreta */
+    max-height: 450px;
+    overflow-y: auto;
+    padding-right: 10px;
+    border: 1px solid #333;
     border-radius: 8px;
     padding: 10px;
 }
 </style>
-""", unsafe_allow_html=True)
-
-
-
+""",
+    unsafe_allow_html=True,
+)
 
 # -------------------
 # CARREGAR DADOS DO OBSERVATÓRIO
 # -------------------
+
 @st.cache_data
 def load_observatory_stats(path: str = "observatorio_resumo.csv"):
     """
@@ -64,21 +60,23 @@ def load_observatory_stats(path: str = "observatorio_resumo.csv"):
         st.sidebar.warning(f"Não foi possível carregar o observatório: {e}")
         return None
 
+
 observatorio_df = load_observatory_stats()
 
 # Transformar em dict para acesso rápido {dimensão: média}
 observatorio_means = {}
-if observatorio_df is not None and "dimension" in observatorio_df.columns and "mean_score" in observatorio_df.columns:
+if (
+    observatorio_df is not None
+    and "dimension" in observatorio_df.columns
+    and "mean_score" in observatorio_df.columns
+):
     observatorio_means = (
-        observatorio_df
-        .set_index("dimension")["mean_score"]
-        .to_dict()
+        observatorio_df.set_index("dimension")["mean_score"].to_dict()
     )
 
 # -------------------
-# DEFINIR QUESTÕES DO DIAGNÓSTICO (EXEMPLO)
+# QUESTÕES DO DIAGNÓSTICO
 # -------------------
-# Aqui você depois substitui pelo seu conjunto completo de ~70 questões.
 
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidad...xternos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
@@ -149,14 +147,12 @@ QUESTOES = [
     {"id": "3.8.4", "texto": "A organização utiliza os resultados das avaliações para auxiliar no processo de coordenação e articulação com órgãos de controle externo?", "dimensao": "Monitoramento e Avaliação,"},
 ]
 
-
 VALORES_ESCALA = {
     0: "0 - Inexistente",
     1: "1 - Muito incipiente",
     2: "2 - Parcialmente estruturado",
-    3: "3 - Bem estruturado"
+    3: "3 - Bem estruturado",
 }
-
 
 # -------------------
 # FUNÇÕES AUXILIARES
@@ -165,17 +161,12 @@ VALORES_ESCALA = {
 def calcular_medias_por_dimensao(respostas_dict):
     """
     respostas_dict: {id_questao: nota}
-    Usa QUESTOES para somar por dimensão e tira média.
+    Usa QUESTOES para somar por dimensão e tirar a média.
     Retorna um dict: {dimensao: média}
     """
     df = pd.DataFrame(QUESTOES)
     df["nota"] = df["id"].map(respostas_dict)
-    medias = (
-        df.groupby("dimensao")["nota"]
-        .mean()
-        .round(2)
-        .to_dict()
-    )
+    medias = df.groupby("dimensao")["nota"].mean().round(2).to_dict()
     return medias
 
 
@@ -187,28 +178,30 @@ def montar_perfil_texto(nome_orgao, respostas_dict, medias_dimensao, observatori
     linhas.append(f"Organização avaliada: {nome_orgao or 'Não informado'}")
     linhas.append("")
     linhas.append("Resumo das notas por dimensão (escala 0 a 3):")
-    
+
     for dim, media_orgao in medias_dimensao.items():
         media_base = observatorio_means.get(dim)
         if media_base is not None:
             diff = round(media_orgao - media_base, 2)
             situacao = (
-                "acima da média da base" if diff > 0.1 else
-                "abaixo da média da base" if diff < -0.1 else
-                "próximo da média da base"
+                "acima da média da base"
+                if diff > 0.1
+                else "abaixo da média da base"
+                if diff < -0.1
+                else "próximo da média da base"
             )
             linhas.append(
                 f"- {dim}: {media_orgao} (média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
             )
         else:
             linhas.append(f"- {dim}: {media_orgao} (sem comparativo na base)")
-    
+
     linhas.append("")
     linhas.append("Notas detalhadas por questão:")
     for q in QUESTOES:
         nota = respostas_dict.get(q["id"])
         linhas.append(f"- {q['id']} | {q['dimensao']} | '{q['texto']}' -> nota {nota}")
-    
+
     return "\n".join(linhas)
 
 
@@ -237,7 +230,7 @@ Regras:
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",  # nome do modelo enviado direto pra API
+            model="gpt-4o-mini",
             messages=messages,
             temperature=0.3,
         )
@@ -246,13 +239,10 @@ Regras:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
-
-
-
-
-# ------------------
+# -------------------
 # STATE INICIAL
 # -------------------
+
 if "diagnostico_respostas" not in st.session_state:
     st.session_state.diagnostico_respostas = None
 
@@ -262,23 +252,17 @@ if "diagnostico_perfil_texto" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Inicializar respostas padrão (1) para todas as questões,
-# mesmo que o usuário ainda não tenha passado pela página delas.
-for q in QUESTOES:
-    key = f"resp_{q['id']}"
-    if key not in st.session_state:
-        st.session_state[key] = 1
+# dicionário central de respostas (id -> nota)
+if "respostas_dict" not in st.session_state:
+    st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
 
-
-# ------------------
+# -------------------
 # LAYOUT PRINCIPAL
 # -------------------
 
 col_form, col_chat = st.columns([2, 3])
 
-import math
-
-# -------- COLUNA ESQUERDA: FORMULÁRIO ----
+# -------- COLUNA ESQUERDA: FORMULÁRIO --------
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
@@ -296,44 +280,42 @@ with col_form:
     fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
 
     st.write(
-        f"Responda cada afirmação numa escala de 0 a 3 "
-        f"(bloco {pagina} de {total_paginas}):"
+        f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):"
     )
 
     # mostra apenas o bloco atual de questões
     for q in QUESTOES[inicio:fim]:
-        st.slider(
+        atual = st.session_state.respostas_dict.get(q["id"], 1)
+        novo_valor = st.slider(
             label=f"{q['id']} — {q['texto']}",
             min_value=0,
             max_value=3,
-            value=1,
+            value=atual,
             step=1,
             help="0 = Inexistente | 3 = Bem estruturado",
-            key=f"resp_{q['id']}",
+            key=f"slider_{q['id']}",
         )
+        # atualiza o dicionário central de respostas
+        st.session_state.respostas_dict[q["id"]] = novo_valor
 
-    # botões de navegação e gerar diagnóstico
-    col_ant, col_prox, col_gera = st.columns([1, 1, 2])
+    # navegação entre blocos
+    col1, col2, col3 = st.columns([1, 1, 2])
 
-    with col_ant:
+    with col1:
         if st.button("⬅️ Anterior", disabled=(pagina == 1)):
             st.session_state.pagina_quest -= 1
-            st.rerun()
+            st.experimental_rerun()
 
-    with col_prox:
+    with col2:
         if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
             st.session_state.pagina_quest += 1
-            st.rerun()
+            st.experimental_rerun()
 
-    with col_gera:
+    with col3:
         gerar = st.button("Gerar diagnóstico")
 
     if gerar:
-        # coleta TODAS as respostas do session_state
-        respostas = {
-            q["id"]: st.session_state.get(f"resp_{q['id']}", 0)
-            for q in QUESTOES
-        }
+        respostas = st.session_state.respostas_dict.copy()
 
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
@@ -357,7 +339,6 @@ with col_form:
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
 
-
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
@@ -375,9 +356,7 @@ with col_chat:
             "Faça uma pergunta para a IA sobre o diagnóstico da sua organização..."
         )
         if prompt:
-            st.session_state.chat_history.append(
-                {"role": "user", "content": prompt}
-            )
+            st.session_state.chat_history.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
 
@@ -393,5 +372,3 @@ with col_chat:
             st.session_state.chat_history.append(
                 {"role": "assistant", "content": resposta}
             )
-
-
