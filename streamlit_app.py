@@ -301,12 +301,12 @@ with col_form:
     with col1:
         if st.button("⬅️ Anterior", disabled=(pagina == 1)):
             st.session_state.pagina_quest -= 1
-            st.experimental_rerun()
+            st.rerun()
 
     with col2:
         if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
             st.session_state.pagina_quest += 1
-            st.experimental_rerun()
+            st.rerun()
 
     with col3:
         gerar = st.button("Gerar diagnóstico")
