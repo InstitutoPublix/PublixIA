@@ -262,6 +262,13 @@ if "diagnostico_perfil_texto" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# Inicializar respostas padrão (1) para todas as questões,
+# mesmo que o usuário ainda não tenha passado pela página delas.
+for q in QUESTOES:
+    key = f"resp_{q['id']}"
+    if key not in st.session_state:
+        st.session_state[key] = 1
+
 
 # ------------------
 # LAYOUT PRINCIPAL
