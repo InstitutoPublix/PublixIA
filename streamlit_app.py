@@ -239,6 +239,7 @@ Regras:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
+
 # -------------------
 # STATE INICIAL
 # -------------------
@@ -302,14 +303,11 @@ with col_form:
         if st.button("⬅️ Anterior", disabled=(pagina == 1)):
             if st.session_state.pagina_quest > 1:
                 st.session_state.pagina_quest -= 1
-            # sem rerun: o clique no botão já faz o script rodar de novo
 
     with col2:
         if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
             if st.session_state.pagina_quest < total_paginas:
                 st.session_state.pagina_quest += 1
-            # idem, nada de rerun
-
 
     with col3:
         gerar = st.button("Gerar diagnóstico")
