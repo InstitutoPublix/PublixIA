@@ -253,6 +253,10 @@ if "diagnostico_perfil_texto" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# dicionário central de respostas (id -> nota)
+if "respostas_dict" not in st.session_state:
+    st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
+
 # estado da página do questionário
 if "pagina_quest" not in st.session_state:
     st.session_state.pagina_quest = 1
@@ -282,19 +286,17 @@ with col_form:
 
     # mostra apenas o bloco atual de questões
     for q in QUESTOES[inicio:fim]:
-        key = f"resp_{q['id']}"
-        # garante valor padrão 1 apenas na primeira vez
-        if key not in st.session_state:
-            st.session_state[key] = 1
-
-        st.slider(
+        atual = st.session_state.respostas_dict.get(q["id"], 1)
+        novo_valor = st.slider(
             label=f"{q['id']} — {q['texto']}",
             min_value=0,
             max_value=3,
+            value=atual,
             step=1,
             help="0 = Inexistente | 3 = Bem estruturado",
-            key=key,
+            key=f"slider_{q['id']}",
         )
+        st.session_state.respostas_dict[q["id"]] = novo_valor
 
     # navegação entre blocos
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -313,11 +315,7 @@ with col_form:
         gerar = st.button("Gerar diagnóstico")
 
     if gerar:
-        # monta o dicionário central de respostas a partir do session_state
-        respostas = {}
-        for q in QUESTOES:
-            key = f"resp_{q['id']}"
-            respostas[q["id"]] = int(st.session_state.get(key, 1))
+        respostas = st.session_state.respostas_dict.copy()
 
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
@@ -337,6 +335,12 @@ with col_form:
                 st.write(f"- **{dim}**: {media} (base: {base:.2f})")
             else:
                 st.write(f"- **{dim}**: {media}")
+
+        # DEBUG opcional para você conferir nota por questão
+        df_debug = pd.DataFrame(QUESTOES)
+        df_debug["nota"] = df_debug["id"].map(respostas)
+        with st.expander("Ver respostas detalhadas (debug)"):
+            st.dataframe(df_debug[["id", "dimensao", "nota"]])
 
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
