@@ -298,21 +298,36 @@ with col_form:
         )
         st.session_state.respostas_dict[q["id"]] = novo_valor
 
-    # navegação entre blocos
+      # navegação entre blocos
     col1, col2, col3 = st.columns([1, 1, 2])
 
+    def ir_anterior():
+        if st.session_state.pagina_quest > 1:
+            st.session_state.pagina_quest -= 1
+
+    def ir_proximo():
+        if st.session_state.pagina_quest < total_paginas:
+            st.session_state.pagina_quest += 1
+
     with col1:
-        if st.button("⬅️ Anterior", disabled=(pagina == 1)):
-            if st.session_state.pagina_quest > 1:
-                st.session_state.pagina_quest -= 1
+        st.button(
+            "⬅️ Anterior",
+            key="btn_anterior",
+            disabled=(pagina == 1),
+            on_click=ir_anterior,
+        )
 
     with col2:
-        if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
-            if st.session_state.pagina_quest < total_paginas:
-                st.session_state.pagina_quest += 1
+        st.button(
+            "Próximo ➡️",
+            key="btn_proximo",
+            disabled=(pagina == total_paginas),
+            on_click=ir_proximo,
+        )
 
     with col3:
-        gerar = st.button("Gerar diagnóstico")
+        gerar = st.button("Gerar diagnóstico", key="btn_gerar")
+
 
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
