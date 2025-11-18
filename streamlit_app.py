@@ -51,7 +51,6 @@ def load_observatory_stats(path: str = "observatorio_resumo.csv"):
     Esperado: um CSV com colunas, por exemplo:
     - dimension: nome da dimensão (Governança, Pessoas, Processos, etc.)
     - mean_score: média da base
-    - p25, p50, p75 (opcional, se você tiver)
     """
     try:
         df = pd.read_csv(path)
@@ -63,16 +62,16 @@ def load_observatory_stats(path: str = "observatorio_resumo.csv"):
 
 observatorio_df = load_observatory_stats()
 
-# Transformar em dict para acesso rápido {dimensão: média}
+# Transformar em dict para acesso rápido {dimensão_normalizada: média}
 observatorio_means = {}
 if (
     observatorio_df is not None
     and "dimension" in observatorio_df.columns
     and "mean_score" in observatorio_df.columns
 ):
-    observatorio_means = (
-        observatorio_df.set_index("dimension")["mean_score"].to_dict()
-    )
+    tmp = observatorio_df.copy()
+    tmp["dim_key"] = tmp["dimension"].astype(str).str.strip().str.rstrip(",")
+    observatorio_means = tmp.set_index("dim_key")["mean_score"].to_dict()
 
 # -------------------
 # QUESTÕES DO DIAGNÓSTICO
@@ -162,11 +161,12 @@ def calcular_medias_por_dimensao(respostas_dict):
     """
     respostas_dict: {id_questao: nota}
     Usa QUESTOES para somar por dimensão e tirar a média.
-    Retorna um dict: {dimensao: média}
+    Retorna um dict: {dimensao_normalizada: média}
     """
     df = pd.DataFrame(QUESTOES)
+    df["dim_key"] = df["dimensao"].astype(str).str.strip().str.rstrip(",")
     df["nota"] = df["id"].map(respostas_dict)
-    medias = df.groupby("dimensao")["nota"].mean().round(2).to_dict()
+    medias = df.groupby("dim_key")["nota"].mean().round(2).to_dict()
     return medias
 
 
@@ -252,9 +252,9 @@ if "diagnostico_perfil_texto" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# dicionário central de respostas (id -> nota)
-if "respostas_dict" not in st.session_state:
-    st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
+# estado da página do questionário
+if "pagina_quest" not in st.session_state:
+    st.session_state.pagina_quest = 1
 
 # -------------------
 # LAYOUT PRINCIPAL
@@ -267,10 +267,6 @@ with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
     nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
-
-    # estado da página do questionário
-    if "pagina_quest" not in st.session_state:
-        st.session_state.pagina_quest = 1
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
@@ -285,18 +281,19 @@ with col_form:
 
     # mostra apenas o bloco atual de questões
     for q in QUESTOES[inicio:fim]:
-        atual = st.session_state.respostas_dict.get(q["id"], 1)
-        novo_valor = st.slider(
+        key = f"resp_{q['id']}"
+        # garante valor padrão 1 apenas na primeira vez
+        if key not in st.session_state:
+            st.session_state[key] = 1
+
+        st.slider(
             label=f"{q['id']} — {q['texto']}",
             min_value=0,
             max_value=3,
-            value=atual,
             step=1,
             help="0 = Inexistente | 3 = Bem estruturado",
-            key=f"slider_{q['id']}",
+            key=key,
         )
-        # atualiza o dicionário central de respostas
-        st.session_state.respostas_dict[q["id"]] = novo_valor
 
     # navegação entre blocos
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -315,7 +312,11 @@ with col_form:
         gerar = st.button("Gerar diagnóstico")
 
     if gerar:
-        respostas = st.session_state.respostas_dict.copy()
+        # monta o dicionário central de respostas a partir do session_state
+        respostas = {}
+        for q in QUESTOES:
+            key = f"resp_{q['id']}"
+            respostas[q["id"]] = int(st.session_state.get(key, 1))
 
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
