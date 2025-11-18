@@ -288,8 +288,10 @@ with col_form:
     inicio = (pagina - 1) * QUESTOES_POR_PAG
     fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
 
-    st.write(f"Responda cada afirmação numa escala de 0 a 3 "
-             f"(bloco {pagina} de {total_paginas}):")
+    st.write(
+        f"Responda cada afirmação numa escala de 0 a 3 "
+        f"(bloco {pagina} de {total_paginas}):"
+    )
 
     # mostra apenas o bloco atual de questões
     for q in QUESTOES[inicio:fim]:
@@ -303,22 +305,18 @@ with col_form:
             key=f"resp_{q['id']}",
         )
 
+    # botões de navegação e gerar diagnóstico
     col_ant, col_prox, col_gera = st.columns([1, 1, 2])
 
-    # navegação entre blocos
-   col1, col2 = st.columns(2)
+    with col_ant:
+        if st.button("⬅️ Anterior", disabled=(pagina == 1)):
+            st.session_state.pagina_quest -= 1
+            st.rerun()
 
-with col1:
-    if st.button("⬅️ Anterior", disabled=(pagina == 1)):
-        st.session_state.pagina_quest -= 1
-        st.rerun()
-
-with col2:
-    if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
-        st.session_state.pagina_quest += 1
-        st.rerun()
-
-
+    with col_prox:
+        if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
+            st.session_state.pagina_quest += 1
+            st.rerun()
 
     with col_gera:
         gerar = st.button("Gerar diagnóstico")
@@ -332,10 +330,14 @@ with col2:
 
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
-        perfil_txt = montar_perfil_texto(nome_orgao, respostas, medias_dim, observatorio_means)
+        perfil_txt = montar_perfil_texto(
+            nome_orgao, respostas, medias_dim, observatorio_means
+        )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
-        st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado.")
+        st.success(
+            "Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado."
+        )
 
         st.write("### Resumo do diagnóstico (por dimensão)")
         for dim, media in medias_dim.items():
@@ -362,9 +364,13 @@ with col_chat:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
+        prompt = st.chat_input(
+            "Faça uma pergunta para a IA sobre o diagnóstico da sua organização..."
+        )
         if prompt:
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
+            st.session_state.chat_history.append(
+                {"role": "user", "content": prompt}
+            )
             with st.chat_message("user"):
                 st.markdown(prompt)
 
@@ -373,9 +379,12 @@ with col_chat:
                     resposta = chamar_ia(
                         st.session_state.diagnostico_perfil_texto,
                         prompt,
-                        st.session_state.chat_history
+                        st.session_state.chat_history,
                     )
                     st.markdown(resposta)
 
-            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+            st.session_state.chat_history.append(
+                {"role": "assistant", "content": resposta}
+            )
+
 
