@@ -305,16 +305,17 @@ with col_form:
 
     col_ant, col_prox, col_gera = st.columns([1, 1, 2])
 
-    # navegação entre blocos
-    with col_ant:
-        if st.button("⬅️ Anterior", disabled=(pagina == 1)):
-            st.session_state.pagina_quest -= 1
-            st.experimental_rerun()
+    # navegação entre bloco
+    if st.button("⬅️ Anterior", disabled=(pagina == 1)):
+    st.session_state.pagina_quest -= 1
+    st.rerun()
 
-    with col_prox:
-        if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
-            st.session_state.pagina_quest += 1
-            st.experimental_rerun()
+...
+
+if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
+    st.session_state.pagina_quest += 1
+    st.rerun()
+
 
     with col_gera:
         gerar = st.button("Gerar diagnóstico")
