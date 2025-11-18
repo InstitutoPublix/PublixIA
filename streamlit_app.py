@@ -306,15 +306,18 @@ with col_form:
     col_ant, col_prox, col_gera = st.columns([1, 1, 2])
 
     # navegação entre blocos
+   col1, col2 = st.columns(2)
+
+with col1:
     if st.button("⬅️ Anterior", disabled=(pagina == 1)):
-    st.session_state.pagina_quest -= 1
-    st.rerun()
+        st.session_state.pagina_quest -= 1
+        st.rerun()
 
-...
+with col2:
+    if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
+        st.session_state.pagina_quest += 1
+        st.rerun()
 
-if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
-    st.session_state.pagina_quest += 1
-    st.rerun()
 
 
     with col_gera:
