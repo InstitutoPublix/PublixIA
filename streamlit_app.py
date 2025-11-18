@@ -250,7 +250,7 @@ Regras:
 
 
 
-# -------------------
+# ------------------
 # STATE INICIAL
 # -------------------
 if "diagnostico_respostas" not in st.session_state:
