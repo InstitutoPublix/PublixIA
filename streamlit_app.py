@@ -305,7 +305,7 @@ with col_form:
 
     col_ant, col_prox, col_gera = st.columns([1, 1, 2])
 
-    # navegação entre bloco
+    # navegação entre blocos
     if st.button("⬅️ Anterior", disabled=(pagina == 1)):
     st.session_state.pagina_quest -= 1
     st.rerun()
