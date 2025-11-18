@@ -269,44 +269,63 @@ if "chat_history" not in st.session_state:
 
 col_form, col_chat = st.columns([2, 3])
 
-# -------- COLUNA ESQUERDA: FORMULÁRIO --------
+import math
+
+# -------- COLUNA ESQUERDA: FORMULÁRIO ----
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
     nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
 
-    with st.form("form_diagnostico"):
-        st.write("Responda cada afirmação numa escala de 0 a 3:")
+    # estado da página do questionário
+    if "pagina_quest" not in st.session_state:
+        st.session_state.pagina_quest = 1
 
-        respostas = {}
+    QUESTOES_POR_PAG = 10
+    total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
 
-        # lista de dimensões únicas
-        dimensoes = sorted(set(q["dimensao"] for q in QUESTOES))
+    pagina = st.session_state.pagina_quest
+    inicio = (pagina - 1) * QUESTOES_POR_PAG
+    fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
 
-        # 🔹 caixa com scroll para as perguntas
-        st.markdown('<div class="scroll-box">', unsafe_allow_html=True)
+    st.write(f"Responda cada afirmação numa escala de 0 a 3 "
+             f"(bloco {pagina} de {total_paginas}):")
 
-        # loop por dimensão
-        for dim in dimensoes:
-            with st.expander(f"📌 {dim}", expanded=False):
-                perguntas_dim = [q for q in QUESTOES if q["dimensao"] == dim]
+    # mostra apenas o bloco atual de questões
+    for q in QUESTOES[inicio:fim]:
+        st.slider(
+            label=f"{q['id']} — {q['texto']}",
+            min_value=0,
+            max_value=3,
+            value=1,
+            step=1,
+            help="0 = Inexistente | 3 = Bem estruturado",
+            key=f"resp_{q['id']}",
+        )
 
-                for q in perguntas_dim:
-                    respostas[q["id"]] = st.slider(
-                        label=f"{q['id']} — {q['texto']}",
-                        min_value=0,
-                        max_value=3,
-                        value=1,
-                        step=1,
-                        help="0 = Inexistente | 3 = Bem estruturado"
-                    )
+    col_ant, col_prox, col_gera = st.columns([1, 1, 2])
 
-        # fecha a caixa com scroll
-        st.markdown('</div>', unsafe_allow_html=True)
+    # navegação entre blocos
+    with col_ant:
+        if st.button("⬅️ Anterior", disabled=(pagina == 1)):
+            st.session_state.pagina_quest -= 1
+            st.experimental_rerun()
 
-        submitted = st.form_submit_button("Gerar diagnóstico")
+    with col_prox:
+        if st.button("Próximo ➡️", disabled=(pagina == total_paginas)):
+            st.session_state.pagina_quest += 1
+            st.experimental_rerun()
 
-    if submitted:
+    with col_gera:
+        gerar = st.button("Gerar diagnóstico")
+
+    if gerar:
+        # coleta TODAS as respostas do session_state
+        respostas = {
+            q["id"]: st.session_state.get(f"resp_{q['id']}", 0)
+            for q in QUESTOES
+        }
+
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
         perfil_txt = montar_perfil_texto(nome_orgao, respostas, medias_dim, observatorio_means)
