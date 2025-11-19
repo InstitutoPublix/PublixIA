@@ -4,6 +4,7 @@ import numpy as np
 import openai
 import math
 import os
+import openpyxl
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
