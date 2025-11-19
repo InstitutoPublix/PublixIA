@@ -421,3 +421,15 @@ with col_chat:
             st.session_state.chat_history.append(
                 {"role": "assistant", "content": resposta}
             )
+st.markdown(
+    """
+<hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
+
+<div style="font-size: 0.85rem; color: #777777; text-align: right;">
+    Desenvolvido pelo <span style="font-weight: 600; color: #FFC728;">
+    Instituto Publix
+    </span>
+</div>
+""",
+    unsafe_allow_html=True,
+)
