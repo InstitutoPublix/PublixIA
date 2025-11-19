@@ -25,67 +25,6 @@ st.markdown(
     max-width: 1200px !important;
 }
 
-/* Fundo geral mais suave */
-html, body, [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"], main {
-    background-color: #0F1116 !important;
-    color: #E6E6E6 !important;
-}
-
-/* Títulos */
-h1, h2, h3, h4 {
-    color: #FFFFFF !important;
-}
-
-/* Cards/expansores */
-div[data-testid="stExpander"] {
-    background-color: #1A1C22 !important;
-    border-radius: 10px !important;
-}
-
-/* Inputs de texto */
-.stTextInput > div > div > input {
-    background-color: #1E1F25 !important;
-    color: #FFFFFF !important;
-    border-radius: 6px !important;
-}
-
-/* Sliders */
-.stSlider > div > div {
-    color: #E6E6E6 !important;
-}
-.stSlider [data-baseweb="slider"] div {
-    background-color: #3D5AFE !important; /* trilho cheio */
-}
-.stSlider [data-baseweb="slider"] div div {
-    box-shadow: none !important;
-}
-
-/* Botões */
-.stButton > button {
-    background-color: #3D5AFE !important;
-    color: #FFFFFF !important;
-    border-radius: 6px !important;
-    padding: 0.45rem 0.9rem;
-    border: none;
-    font-weight: 500;
-}
-.stButton > button:hover {
-    background-color: #5C6FFB !important;
-}
-
-/* Chat messages */
-[data-testid="stChatMessage"] {
-    background-color: #1A1C22 !important;
-    border-radius: 10px !important;
-    padding: 1rem !important;
-}
-
-/* Caixa de input do chat */
-[data-testid="stChatInput"] textarea {
-    background-color: #1E1F25 !important;
-    color: #FFFFFF !important;
-}
-
 /* Pequeno espaçamento entre sliders */
 div[data-testid="stSlider"] {
     margin-bottom: 0.7rem !important;
