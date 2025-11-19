@@ -4,7 +4,7 @@ import numpy as np
 import openai
 import math
 import os
-import openpyxl
+
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -76,27 +76,18 @@ st.markdown(
 # -------------------
 
 @st.cache_data
-def load_observatory_stats(
-    path_xlsx: str = "observatorio_resumo.xlsx",
-    path_csv: str = "observatorio_resumo.csv",
-):
+def load_observatory_stats(path_csv: str = "observatorio_resumo.csv"):
     """
-    Esperado: um XLSX ou CSV com colunas:
+    Esperado: um CSV com colunas:
     - dimension: nome da dimensão
     - mean_score: média da base
     """
     try:
-        # tenta primeiro Excel
-        if os.path.exists(path_xlsx):
-            df = pd.read_excel(path_xlsx)
-            return df
-
-        # tenta CSV
         if os.path.exists(path_csv):
             df = pd.read_csv(path_csv)
             return df
 
-        st.warning("Nenhum arquivo de observatório encontrado (xlsx ou csv).")
+        st.warning("Arquivo observatorio_resumo.csv não encontrado.")
         return None
 
     except Exception as e:
@@ -105,7 +96,6 @@ def load_observatory_stats(
 
 
 observatorio_df = load_observatory_stats()
-
 # Transformar em dict para acesso rápido {dimensão_normalizada: média}
 observatorio_means = {}
 if (
