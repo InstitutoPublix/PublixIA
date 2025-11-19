@@ -76,7 +76,7 @@ st.markdown(
 # CARREGAR DADOS DO OBSERVATÓRIO
 # -------------------
 
-
+@st.cache_data
 def load_observatory_stats(path_csv: str = "observatorio_resumo.csv"):
     """
     Esperado: um CSV com colunas:
