@@ -4,8 +4,6 @@ import numpy as np
 import openai
 import math
 import os
-st.write("WORKDIR:", os.getcwd())
-st.write("FILES:", os.listdir())
 
 
 
