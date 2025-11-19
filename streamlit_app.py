@@ -96,7 +96,8 @@ def load_observatory_stats(path_csv: str = "observatorio_resumo.csv"):
 
 
 observatorio_df = load_observatory_stats()
-# Transformar em dict para acesso rápido {dimensão_normalizada: média}
+
+# Transformar em dict {dimensão_normalizada: média}
 observatorio_means = {}
 if (
     observatorio_df is not None
