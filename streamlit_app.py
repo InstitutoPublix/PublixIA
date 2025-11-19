@@ -79,6 +79,22 @@ button[title="Manage app"] {display: none !important;}
     border-radius: 8px;
     padding: 10px;
 }
+/* Oculta botão flutuante "Manage app" do Streamlit Cloud */
+
+/* Tenta pelos atributos mais comuns */
+button[aria-label="Manage app"],
+button[title="Manage app"],
+div[data-testid="manage-app-button"],
+div[data-testid="ManageAppButton"] {
+    display: none !important;
+}
+
+/* Plano B: esconde qualquer container fixo no canto inferior direito
+   usado pelo Streamlit pra esse botão */
+div[style*="position: fixed"][style*="bottom: 0px"][style*="right: 0px"],
+div[style*="position: fixed"][style*="bottom: 16px"][style*="right: 16px"] {
+    display: none !important;
+}
 </style>
 """,
     unsafe_allow_html=True,
