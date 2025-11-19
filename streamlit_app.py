@@ -80,16 +80,26 @@ def load_observatory_stats(
     path_csv: str = "observatorio_resumo.csv",
 ):
     """
-    Esperado: um XLSX com colunas, por exemplo:
-    - dimension: nome da dimensão (Governança, Pessoas, Processos, etc.)
+    Esperado: um XLSX ou CSV com colunas:
+    - dimension: nome da dimensão
     - mean_score: média da base
     """
     try:
-        df = pd.read_xlsx(path)
-        return df
+        # tenta primeiro Excel
+        if os.path.exists(path_xlsx):
+            df = pd.read_excel(path_xlsx)
+            return df
+
+        # tenta CSV
+        if os.path.exists(path_csv):
+            df = pd.read_csv(path_csv)
+            return df
+
+        st.warning("Nenhum arquivo de observatório encontrado (xlsx ou csv).")
+        return None
+
     except Exception as e:
-        # aviso simples sem sidebar
-        st.warning(f"Não foi possível carregar o observatório: {e}")
+        st.warning(f"Erro ao carregar observatório: {e}")
         return None
 
 
@@ -105,6 +115,7 @@ if (
     tmp = observatorio_df.copy()
     tmp["dim_key"] = tmp["dimension"].astype(str).str.strip().str.rstrip(",")
     observatorio_means = tmp.set_index("dim_key")["mean_score"].to_dict()
+
 
 # -------------------
 # QUESTÕES DO DIAGNÓSTICO
