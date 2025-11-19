@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import openai
 import math
+import os
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -74,14 +75,17 @@ st.markdown(
 # -------------------
 
 @st.cache_data
-def load_observatory_stats(path: str = "observatorio_resumo.csv"):
+def load_observatory_stats(
+    path_xlsx: str = "observatorio_resumo.xlsx",
+    path_csv: str = "observatorio_resumo.csv",
+):
     """
-    Esperado: um CSV com colunas, por exemplo:
+    Esperado: um XLSX com colunas, por exemplo:
     - dimension: nome da dimensão (Governança, Pessoas, Processos, etc.)
     - mean_score: média da base
     """
     try:
-        df = pd.read_csv(path)
+        df = pd.read_xlsx(path)
         return df
     except Exception as e:
         # aviso simples sem sidebar
