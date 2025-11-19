@@ -5,6 +5,103 @@ import openai
 import math
 
 # -------------------
+# CONFIGURAÇÕES GERAIS
+# -------------------
+
+st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="wide")
+
+# CSS geral de UX (sem sidebar, dark clean)
+st.markdown(
+    """
+<style>
+/* Remove completamente a barra lateral */
+[data-testid="stSidebar"] {
+    display: none !important;
+}
+
+/* Ajuste de largura do conteúdo principal */
+.block-container {
+    padding-top: 1.5rem !important;
+    max-width: 1200px !important;
+}
+
+/* Fundo geral mais suave */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stAppViewBlockContainer"], main {
+    background-color: #0F1116 !important;
+    color: #E6E6E6 !important;
+}
+
+/* Títulos */
+h1, h2, h3, h4 {
+    color: #FFFFFF !important;
+}
+
+/* Cards/expansores */
+div[data-testid="stExpander"] {
+    background-color: #1A1C22 !important;
+    border-radius: 10px !important;
+}
+
+/* Inputs de texto */
+.stTextInput > div > div > input {
+    background-color: #1E1F25 !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+}
+
+/* Sliders */
+.stSlider > div > div {
+    color: #E6E6E6 !important;
+}
+.stSlider [data-baseweb="slider"] div {
+    background-color: #3D5AFE !important; /* trilho cheio */
+}
+.stSlider [data-baseweb="slider"] div div {
+    box-shadow: none !important;
+}
+
+/* Botões */
+.stButton > button {
+    background-color: #3D5AFE !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    padding: 0.45rem 0.9rem;
+    border: none;
+    font-weight: 500;
+}
+.stButton > button:hover {
+    background-color: #5C6FFB !important;
+}
+
+/* Chat messages */
+[data-testid="stChatMessage"] {
+    background-color: #1A1C22 !important;
+    border-radius: 10px !important;
+    padding: 1rem !important;
+}
+
+/* Caixa de input do chat */
+[data-testid="stChatInput"] textarea {
+    background-color: #1E1F25 !important;
+    color: #FFFFFF !important;
+}
+
+/* Pequeno espaçamento entre sliders */
+div[data-testid="stSlider"] {
+    margin-bottom: 0.7rem !important;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+st.title("Observatório de Maturidade + Assistente de IA")
+st.write(
+    "Responda ao diagnóstico, compare sua organização com a base do Observatório "
+    "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
+)
+
+# -------------------
 # API KEY
 # -------------------
 
@@ -14,16 +111,8 @@ else:
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
 
 # -------------------
-# CONFIGURAÇÕES GERAIS
+# CSS extra (scroll-box se quiser usar)
 # -------------------
-
-st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="wide")
-
-st.title("Observatório de Maturidade + Assistente de IA")
-st.write(
-    "Responda ao diagnóstico, compare sua organização com a base do Observatório "
-    "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
-)
 
 st.markdown(
     """
@@ -56,7 +145,8 @@ def load_observatory_stats(path: str = "observatorio_resumo.csv"):
         df = pd.read_csv(path)
         return df
     except Exception as e:
-        st.sidebar.warning(f"Não foi possível carregar o observatório: {e}")
+        # aviso simples sem sidebar
+        st.warning(f"Não foi possível carregar o observatório: {e}")
         return None
 
 
@@ -298,7 +388,7 @@ with col_form:
         )
         st.session_state.respostas_dict[q["id"]] = novo_valor
 
-      # navegação entre blocos
+    # navegação entre blocos
     col1, col2, col3 = st.columns([1, 1, 2])
 
     def ir_anterior():
@@ -326,8 +416,7 @@ with col_form:
         )
 
     with col3:
-        gerar = st.button("Gerar diagnóstico", key="btn_gerar")
-
+        gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
