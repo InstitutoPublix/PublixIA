@@ -59,6 +59,18 @@ else:
 st.markdown(
     """
 <style>
+/* Oculta menu hambúrguer, share, settings, star */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* Remove a barra inferior "Manage app" (Streamlit Cloud) */
+.stAppDeployButton {display: none !important;}
+button[title="Manage app"] {display: none !important;}
+
+/* Remove barra preta de controle do app no canto inferior direito */
+[data-testid="stStatusWidget"] {display: none !important;}
+
 .scroll-box {
     max-height: 450px;
     overflow-y: auto;
