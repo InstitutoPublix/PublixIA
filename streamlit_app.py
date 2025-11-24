@@ -37,17 +37,28 @@ div[data-testid="stSlider"] {
     unsafe_allow_html=True,
 )
 
-st.title("Radar Publix")
-st.write(
-    "O Radar Publix é a camada inteligente do Observatório de Maturidade, criada para transformar dados em direção."
-"Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e potenciais evolutivos, tudo de forma clara, estratégica e personalizada para o seu órgão."
+st.markdown(
+    """
+<h1 style='margin-bottom: -10px;'>Radar Publix</h1>
 
+<p style='font-size: 1.05rem; line-height: 1.55;'>
+O <strong>Radar Publix</strong> é a camada inteligente do Observatório de Maturidade, criada para transformar dados em clareza.
+Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução — tudo de forma objetiva, estratégica e personalizada para o seu órgão.
+</p>
 
-"Combinando análise de dados, linguagem natural e a experiência Publix em gestão pública, o Radar oferece uma visão integrada, estratégica e orientada à ação, pensado para apoiar órgãos públicos na tomada de decisão e no fortalecimento de suas capacidades."
+<p style='font-size: 1.05rem; line-height: 1.55;'>
+Combinando análise de dados, linguagem natural e a experiência da Publix em gestão pública,
+o Radar oferece uma visão integrada e acionável sobre a maturidade institucional.
+É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
+</p>
 
-"Radar Publix"
-"Inteligência para evoluir capacidades. Clareza para transformar gestão."
+<p style='font-size: 1.05rem; line-height: 1.55; font-weight: 600;'>
+Radar Publix — inteligência para evoluir capacidades.
+</p>
+""",
+    unsafe_allow_html=True,
 )
+
 
 # -------------------
 # API KEY
