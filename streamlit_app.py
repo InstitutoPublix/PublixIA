@@ -37,7 +37,7 @@ div[data-testid="stSlider"] {
     unsafe_allow_html=True,
 )
 
-st.title("Observatório de Maturidade + Assistente de IA")
+st.title("Radar Publix")
 st.write(
     "O Radar Publix é a camada inteligente do Observatório de Maturidade, criada para transformar dados em direção."
 "Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e potenciais evolutivos, tudo de forma clara, estratégica e personalizada para o seu órgão."
