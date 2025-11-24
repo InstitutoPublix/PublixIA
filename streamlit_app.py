@@ -73,6 +73,7 @@ else:
 # CSS extra (scroll-box se quiser usar)
 # -------------------
 
+# --- BLOCO 1 ---
 st.markdown(
     """
 <style>
@@ -84,20 +85,32 @@ footer {visibility: hidden;}
 /* Remove a barra inferior "Manage app" (Streamlit Cloud) */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
-st.markdown("""
+# --- BLOCO 2 ---
+st.markdown(
+    """
 <style>
 /* Caixa de aviso (alert) nas cores do Publix */
 div[data-testid="stAlert"] {
-    background-color: #FFF6D4 !important;  /* amarelo bem suave */
+    background-color: #FFF6D4 !important;  /* amarelo suave */
     border-left: 6px solid #FFC728 !important;  /* amarelo Publix */
     border-radius: 6px !important;
     color: #444 !important;
     font-size: 0.95rem !important;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
+
+/* Remove a barra inferior "Manage app" (Streamlit Cloud) */
+.stAppDeployButton {display: none !important;}
+button[title="Manage app"] {display: none !important;}
 
 /* Remove barra preta de controle do app no canto inferior direito */
 [data-testid="stStatusWidget"] {display: none !important;}
