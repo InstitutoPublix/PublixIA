@@ -85,6 +85,20 @@ footer {visibility: hidden;}
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 
+st.markdown("""
+<style>
+/* Caixa de aviso (alert) nas cores do Publix */
+div[data-testid="stAlert"] {
+    background-color: #FFF6D4 !important;  /* amarelo bem suave */
+    border-left: 6px solid #FFC728 !important;  /* amarelo Publix */
+    border-radius: 6px !important;
+    color: #444 !important;
+    font-size: 0.95rem !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 /* Remove barra preta de controle do app no canto inferior direito */
 [data-testid="stStatusWidget"] {display: none !important;}
 
