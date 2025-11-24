@@ -403,21 +403,22 @@ with col_form:
     with col3:
         gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
-    if gerar:
+        if gerar:
         respostas = st.session_state.respostas_dict.copy()
 
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
+
         perfil_txt = montar_perfil_texto(
-             perfil_txt = montar_perfil_texto(
-        instituicao,
-        poder,
-        esfera,
-        estado,
-        respostas,
-        medias_dim,
-        observatorio_means,
-    )
+            instituicao,
+            poder,
+            esfera,
+            estado,
+            respostas,
+            medias_dim,
+            observatorio_means,
+        )
+
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
         st.success(
@@ -440,6 +441,7 @@ with col_form:
 
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
+
 
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
