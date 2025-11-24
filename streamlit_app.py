@@ -235,14 +235,20 @@ def calcular_medias_por_dimensao(respostas_dict):
     return medias
 
 
-def montar_perfil_texto(nome_orgao, respostas_dict, medias_dimensao, observatorio_means):
+def montar_perfil_texto(instituicao, poder, esfera, estado,
+                        respostas_dict, medias_dimensao, observatorio_means):
     """
     Gera um texto estruturado sobre o órgão, para ser passado como contexto para a IA.
     """
     linhas = []
-    linhas.append(f"Organização avaliada: {nome_orgao or 'Não informado'}")
+    linhas.append(f"Instituição avaliada: {instituicao or 'Não informada'}")
+    linhas.append(f"Poder: {poder or 'Não informado'}")
+    linhas.append(f"Esfera: {esfera or 'Não informada'}")
+    linhas.append(f"Estado: {estado or 'Não informado'}")
     linhas.append("")
     linhas.append("Resumo das notas por dimensão (escala 0 a 3):")
+    # (deixa o restante da função exatamente como já está)
+
 
     for dim, media_orgao in medias_dimensao.items():
         media_base = observatorio_means.get(dim)
@@ -336,7 +342,11 @@ col_form, col_chat = st.columns([2, 3])
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
-    nome_orgao = st.text_input("Nome do órgão/organização (opcional)", "")
+    instituicao = st.text_input("Instituição", "")
+    poder = st.text_input("Poder (ex.: Executivo, Judiciário, Legislativo)", "")
+    esfera = st.text_input("Esfera (ex.: Federal, Estadual, Municipal)", "")
+    estado = st.text_input("Estado (UF)", "")
+
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
@@ -399,8 +409,15 @@ with col_form:
         st.session_state.diagnostico_respostas = respostas
         medias_dim = calcular_medias_por_dimensao(respostas)
         perfil_txt = montar_perfil_texto(
-            nome_orgao, respostas, medias_dim, observatorio_means
-        )
+             perfil_txt = montar_perfil_texto(
+        instituicao,
+        poder,
+        esfera,
+        estado,
+        respostas,
+        medias_dim,
+        observatorio_means,
+    )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
         st.success(
