@@ -178,6 +178,7 @@ if (
     observatorio_means = tmp.set_index("dim_key")["mean_score"].to_dict()
 
 
+
 # -------------------
 # QUESTÕES DO DIAGNÓSTICO
 # -------------------
@@ -258,6 +259,11 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
+# Mapeia o nome usado no questionário para o nome da base do Observatório
+DIM_ALIAS = {
+    "Alinhamento da Estrutura implementadora": "Estrutura da Implementação",
+}
+
 # -------------------
 # FUNÇÕES AUXILIARES
 # -------------------
@@ -269,10 +275,20 @@ def calcular_medias_por_dimensao(respostas_dict):
     Retorna um dict: {dimensao_normalizada: média}
     """
     df = pd.DataFrame(QUESTOES)
-    df["dim_key"] = df["dimensao"].astype(str).str.strip().str.rstrip(",")
+
+    # Normaliza o nome da dimensão e aplica o alias para casar com a base
+    df["dim_key"] = (
+        df["dimensao"]
+        .astype(str)
+        .str.strip()
+        .str.rstrip(",")
+        .replace(DIM_ALIAS)  # <- aqui fazemos "Alinhamento..." -> "Estrutura da Implementação"
+    )
+
     df["nota"] = df["id"].map(respostas_dict)
     medias = df.groupby("dim_key")["nota"].mean().round(2).to_dict()
     return medias
+
 
 
 def montar_perfil_texto(instituicao, poder, esfera, estado,
