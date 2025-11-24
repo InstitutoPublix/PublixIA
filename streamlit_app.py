@@ -403,7 +403,7 @@ with col_form:
     with col3:
         gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
-        if gerar:
+    if gerar:
         respostas = st.session_state.respostas_dict.copy()
 
         st.session_state.diagnostico_respostas = respostas
@@ -441,7 +441,6 @@ with col_form:
 
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
-
 
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
