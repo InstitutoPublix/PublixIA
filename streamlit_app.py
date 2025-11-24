@@ -259,6 +259,45 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
+# Médias da base por Poder (retiradas do BI)
+BASE_MEDIA_POR_PODER = {
+    "organismo internacional": 1.93,
+    "empresa pública": 1.87,
+    "privado": 1.82,
+    "legislativo": 1.73,
+    "executivo": 1.57,
+    "confederação": 1.57,
+}
+
+# Médias da base por Esfera (retiradas do BI)
+BASE_MEDIA_POR_ESFERA = {
+    "federal": 1.76,
+    "estadual": 1.41,
+    "municipal": 1.35,
+    "privado": 1.81,
+    "organismo internacional": 1.93,
+    # se quiser, pode adicionar "3º setor" depois que tiver o valor certinho
+}
+
+def _normalizar_label(texto: str) -> str | None:
+    if not texto:
+        return None
+    t = texto.strip().lower()
+
+    # mapeia algumas variações comuns
+    substituicoes = {
+        "poder executivo": "executivo",
+        "poder legislativo": "legislativo",
+        "poder judiciário": "judiciário",
+        "judiciario": "judiciário",
+        "judiciário": "judiciário",
+        "org. internacional": "organismo internacional",
+        "organismo int.": "organismo internacional",
+    }
+    t = substituicoes.get(t, t)
+    return t
+
+
 # Mapeia o nome usado no questionário para o nome da base do Observatório
 DIM_ALIAS = {
     "Alinhamento da Estrutura implementadora": "Estrutura da Implementação",
