@@ -393,75 +393,55 @@ def montar_perfil_texto(instituicao, poder, esfera, estado,
     return "\n".join(linhas)
 
 
-
 def chamar_ia(perfil_texto, user_message, chat_history):
+    """
+    Chama o modelo de IA usando o diagnóstico como contexto
+    e o histórico de conversa salvo em st.session_state.chat_history.
+    """
     system_prompt = """
-Você é o Radar Publix, a camada de inteligência do Observatório de Maturidade.
+Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
+Sua função é analisar o diagnóstico de um órgão público e sugerir caminhos práticos
+para evoluir a maturidade nas diferentes dimensões (governança, processos, pessoas,
+dados, tecnologia, etc.).
 
-Seu papel é atuar como um consultor sênior de gestão pública, usando SEMPRE os dados
-do diagnóstico e da base do Observatório que aparecem no contexto.
-
-Regras importantes (siga todas):
-
-1. Leia com atenção:
-   - Metadados da organização (instituição, poder, esfera, estado).
-   - Médias por dimensão e a comparação com a base.
-   - Notas por questão.
-
-2. Use NÚMEROS na resposta:
-   - Cite sempre as notas (ex.: 2,23 em Agenda Estratégica) e, quando existir,
-     a média da base e a diferença (ex.: base 1,92; +0,31 acima).
-   - Quando falar de pontos fortes ou fracos, mencione quais dimensões/subdimensões
-     ou questões estão puxando o resultado.
-
-3. Estruture a resposta em BLOCOS claros:
-   a) Visão geral: 2–3 frases resumindo o nível de maturidade da organização.
-   b) Pontos fortes: 2–4 bullets, sempre com dimensão/subdimensão + nota + leitura.
-   c) Pontos críticos / prioridades: 3–5 bullets, idem, destacando onde a nota é baixa
-      ou abaixo da base.
-   d) Primeiros passos sugeridos: 3 ações bem concretas, de baixo custo, conectadas
-      diretamente às fragilidades identificadas.
-
-4. Personalização:
-   - Use o nome da instituição e o contexto (Poder, Esfera, Estado) quando isso fizer sentido.
-   - Se o usuário perguntar sobre um recorte específico (ex.: “e se eu considerar o Poder Executivo?”),
-     responda focando nesse recorte, mas SEM perder de vista o diagnóstico geral.
-   - Evite frases genéricas como “é importante melhorar processos”; diga QUAL processo,
-     em QUAL dimensão, e COMO começar.
-
-5. Linguagem:
-   - Escreva em português do Brasil, com tom profissional, direto e didático.
-   - Evite jargão excessivo de consultoria. Traga exemplos práticos de rotinas,
-     instrumentos e governança típicos de órgãos públicos brasileiros.
+Regras:
+- Use SEMPRE os números do diagnóstico: notas por dimensão, diferenças em relação à base,
+  poder, esfera e demais dados fornecidos no contexto.
+- Não seja genérico: cite explicitamente onde a organização está acima, igual ou abaixo da base.
+- Comece resumindo brevemente os principais pontos fortes e fracos.
+- Ajude o usuário a priorizar: indique por onde começar e o que é mais crítico.
+- Traga sugestões realistas para o contexto de órgãos públicos brasileiros
+  (considerando restrições de tempo, orçamento e burocracia).
+- Se alguma informação não estiver disponível no contexto, diga isso claramente em vez de inventar.
+- Linguagem clara, direta e prática.
 """
 
+    # Monta a lista de mensagens para a API
     messages = [
         {"role": "system", "content": system_prompt},
-        {
-            "role": "system",
-            "content": "Contexto da base nacional do Observatório de Maturidade (resumo):\n"
-                       + OBSERVATORIO_CONTEXT,
-        },
-        {
-            "role": "system",
-            "content": "A seguir está o diagnóstico estruturado da organização respondente:\n"
-                       + perfil_texto,
-        },
+        {"role": "system", "content": "A seguir está o diagnóstico estruturado da organização:"},
+        {"role": "system", "content": perfil_texto},
     ]
 
-    messages.extend(chat_history)
+    # Garante que só entram user/assistant no histórico
+    for m in chat_history:
+        if m.get("role") in ("user", "assistant"):
+            messages.append(m)
+
+    # Mensagem atual do usuário
     messages.append({"role": "user", "content": user_message})
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.3,
+            temperature=0.25,
         )
         return response.choices[0].message["content"]
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
+
 
 
 # -------------------
@@ -596,6 +576,7 @@ with col_form:
             st.text(st.session_state.diagnostico_perfil_texto)
 
 # -------- COLUNA DIREITA: CHAT --------
+# -------- COLUNA DIREITA: CHAT --------
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
 
@@ -604,18 +585,30 @@ with col_chat:
     elif "OPENAI_API_KEY" not in st.secrets:
         st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
+        # Mostra o histórico
         for msg in st.session_state.chat_history:
-            with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+            if msg["role"] == "user":
+                with st.chat_message("user"):
+                    st.markdown(msg["content"])
+            elif msg["role"] == "assistant":
+                with st.chat_message("assistant"):
+                    st.markdown(msg["content"])
 
+        # Caixa de entrada do chat
         prompt = st.chat_input(
             "Faça uma pergunta para a IA sobre o diagnóstico da sua organização..."
         )
+
         if prompt:
-            st.session_state.chat_history.append({"role": "user", "content": prompt})
+            # Adiciona mensagem do usuário ao histórico
+            user_msg = {"role": "user", "content": prompt}
+            st.session_state.chat_history.append(user_msg)
+
+            # Mostra imediatamente a mensagem do usuário
             with st.chat_message("user"):
                 st.markdown(prompt)
 
+            # Gera resposta da IA
             with st.chat_message("assistant"):
                 with st.spinner("Gerando resposta da IA..."):
                     resposta = chamar_ia(
@@ -625,9 +618,11 @@ with col_chat:
                     )
                     st.markdown(resposta)
 
+            # Salva resposta no histórico
             st.session_state.chat_history.append(
                 {"role": "assistant", "content": resposta}
             )
+
 st.markdown(
     """
 <hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
