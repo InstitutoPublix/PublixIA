@@ -329,38 +329,60 @@ def calcular_medias_por_dimensao(respostas_dict):
     return medias
 
 
-
 def montar_perfil_texto(instituicao, poder, esfera, estado,
                         respostas_dict, medias_dimensao, observatorio_means):
     """
     Gera um texto estruturado sobre o órgão, para ser passado como contexto para a IA.
+    Agora inclui comparações com a base por Poder e por Esfera.
     """
     linhas = []
+
+    # --- Identificação básica ---
     linhas.append(f"Instituição avaliada: {instituicao or 'Não informada'}")
     linhas.append(f"Poder: {poder or 'Não informado'}")
     linhas.append(f"Esfera: {esfera or 'Não informada'}")
     linhas.append(f"Estado: {estado or 'Não informado'}")
     linhas.append("")
+
+    # --- Comparação por Poder / Esfera com a base do Observatório ---
+    poder_norm = _normalizar_label(poder)
+    esfera_norm = _normalizar_label(esfera)
+
+    media_poder_base = BASE_MEDIA_POR_PODER.get(poder_norm) if poder_norm else None
+    media_esfera_base = BASE_MEDIA_POR_ESFERA.get(esfera_norm) if esfera_norm else None
+
+    if media_poder_base is not None:
+        linhas.append(
+            f"No Observatório de Maturidade, a média geral de maturidade para o "
+            f"poder '{poder}' é {media_poder_base:.2f}."
+        )
+    if media_esfera_base is not None:
+        linhas.append(
+            f"Na esfera '{esfera}', a média geral de maturidade observada na base "
+            f"é {media_esfera_base:.2f}."
+        )
+    if media_poder_base is not None or media_esfera_base is not None:
+        linhas.append("")
+
+    # --- Resumo por dimensão (comparando com a base) ---
     linhas.append("Resumo das notas por dimensão (escala 0 a 3):")
-    # (deixa o restante da função exatamente como já está)
-
-
     for dim, media_orgao in medias_dimensao.items():
         media_base = observatorio_means.get(dim)
-        if media_base is not None:
+        if media_base is not None and not pd.isna(media_base):
             diff = round(media_orgao - media_base, 2)
-            situacao = (
-                "acima da média da base"
-                if diff > 0.1
-                else "abaixo da média da base"
-                if diff < -0.1
-                else "próximo da média da base"
-            )
+            if diff > 0.1:
+                situacao = "acima da média da base"
+            elif diff < -0.1:
+                situacao = "abaixo da média da base"
+            else:
+                situacao = "próximo da média da base"
+
             linhas.append(
-                f"- {dim}: {media_orgao} (média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
+                f"- {dim}: {media_orgao:.2f} "
+                f"(média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
             )
         else:
-            linhas.append(f"- {dim}: {media_orgao} (sem comparativo na base)")
+            linhas.append(f"- {dim}: {media_orgao:.2f} (sem comparativo na base)")
 
     linhas.append("")
     linhas.append("Notas detalhadas por questão:")
@@ -369,6 +391,7 @@ def montar_perfil_texto(instituicao, poder, esfera, estado,
         linhas.append(f"- {q['id']} | {q['dimensao']} | '{q['texto']}' -> nota {nota}")
 
     return "\n".join(linhas)
+
 
 
 def chamar_ia(perfil_texto, user_message, chat_history):
