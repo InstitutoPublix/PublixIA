@@ -39,8 +39,14 @@ div[data-testid="stSlider"] {
 
 st.title("Observatório de Maturidade + Assistente de IA")
 st.write(
-    "Responda ao diagnóstico, compare sua organização com a base do Observatório "
-    "e converse com uma IA sobre como evoluir a maturidade do seu órgão público."
+    "O Radar Publix é a camada inteligente do Observatório de Maturidade, criada para transformar dados em direção."
+"Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e potenciais evolutivos, tudo de forma clara, estratégica e personalizada para o seu órgão."
+
+
+"Combinando análise de dados, linguagem natural e a experiência Publix em gestão pública, o Radar oferece uma visão integrada, estratégica e orientada à ação, pensado para apoiar órgãos públicos na tomada de decisão e no fortalecimento de suas capacidades."
+
+"Radar Publix"
+"Inteligência para evoluir capacidades. Clareza para transformar gestão."
 )
 
 # -------------------
@@ -386,7 +392,7 @@ with col_form:
 
     with col1:
         st.button(
-            "⬅️ Anterior",
+            "Anterior",
             key="btn_anterior",
             disabled=(pagina == 1),
             on_click=ir_anterior,
@@ -394,7 +400,7 @@ with col_form:
 
     with col2:
         st.button(
-            "Próximo ➡️",
+            "Próximo",
             key="btn_proximo",
             disabled=(pagina == total_paginas),
             on_click=ir_proximo,
