@@ -74,47 +74,43 @@ else:
 # -------------------
 
 # --- BLOCO 1 ---
-st.markdown(
-    """
+st.markdown("""
 <style>
-/* Oculta menu hambúrguer, share, settings, star */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Remove a barra inferior "Manage app" (Streamlit Cloud) */
+/* Remove "Manage app" */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # --- BLOCO 2 ---
-st.markdown(
-    """
+st.markdown("""
 <style>
 /* Caixa de aviso (alert) nas cores do Publix */
 div[data-testid="stAlert"] {
-    background-color: #FFF6D4 !important;  /* amarelo suave */
-    border-left: 6px solid #FFC728 !important;  /* amarelo Publix */
+    background-color: #FFF6D4 !important;
+    border-left: 6px solid #FFC728 !important;
     border-radius: 6px !important;
     color: #444 !important;
     font-size: 0.95rem !important;
 }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-
-/* Remove a barra inferior "Manage app" (Streamlit Cloud) */
+# --- BLOCO 3 (o CSS que estava solto) ---
+st.markdown("""
+<style>
+/* Remove barra inferior "Manage app" extra */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 
-/* Remove barra preta de controle do app no canto inferior direito */
+/* Remove barra preta no canto inferior */
 [data-testid="stStatusWidget"] {display: none !important;}
 
+/* Scroll box */
 .scroll-box {
     max-height: 450px;
     overflow-y: auto;
@@ -123,9 +119,8 @@ button[title="Manage app"] {display: none !important;}
     border-radius: 8px;
     padding: 10px;
 }
-/* Oculta botão flutuante "Manage app" do Streamlit Cloud */
 
-/* Tenta pelos atributos mais comuns */
+/* Oculta botão flutuante */
 button[aria-label="Manage app"],
 button[title="Manage app"],
 div[data-testid="manage-app-button"],
@@ -133,16 +128,13 @@ div[data-testid="ManageAppButton"] {
     display: none !important;
 }
 
-/* Plano B: esconde qualquer container fixo no canto inferior direito
-   usado pelo Streamlit pra esse botão */
-div[style*="position: fixed"][style*="bottom: 0px"][style*="right: 0px"],
-div[style*="position: fixed"][style*="bottom: 16px"][style*="right: 16px"] {
+/* Esconde container fixo */
+div[style*="position: fixed"][style*="bottom"][style*="right"] {
     display: none !important;
 }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
+
 
 # -------------------
 # CARREGAR DADOS DO OBSERVATÓRIO
