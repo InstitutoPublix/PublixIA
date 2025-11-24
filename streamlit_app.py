@@ -91,12 +91,14 @@ st.markdown("""
 <style>
 /* Caixa de aviso (alert) nas cores do Publix */
 div[data-testid="stAlert"] {
-    background-color: #FFF6D4 !important;
-    border-left: 6px solid #FFC728 !important;
+    background-color: #FFC728 !important;   /* amarelo Publix */
+    border-left: 6px solid #E0A600 !important; /* amarelo escuro */
     border-radius: 6px !important;
-    color: #444 !important;
-    font-size: 0.95rem !important;
+    color: #000000 !important; /* texto preto */
+    font-size: 1rem !important;
+    font-weight: 500 !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
