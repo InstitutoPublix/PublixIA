@@ -89,18 +89,20 @@ button[title="Manage app"] {display: none !important;}
 # --- BLOCO 2 ---
 st.markdown("""
 <style>
-/* Caixa de aviso (alert) nas cores do Publix */
+/* Caixa de aviso (alert) nas cores Publix */
 div[data-testid="stAlert"] {
-    background-color: #FFC728 !important;   /* amarelo Publix */
-    border-left: 6px solid #E0A600 !important; /* amarelo escuro */
-    border-radius: 6px !important;
-    color: #000000 !important; /* texto preto */
-    font-size: 1rem !important;
-    font-weight: 500 !important;
+    background-color: #FFC728 !important;  /* amarelo Publix */
+    border-left: 6px solid #E0A600 !important;
+    border-radius: 8px !important;
 }
 
+/* Força texto preto dentro do alerta */
+div[data-testid="stAlert"] * {
+    color: #000000 !important;    /* texto preto */
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- BLOCO 3 (o CSS que estava solto) ---
 st.markdown("""
