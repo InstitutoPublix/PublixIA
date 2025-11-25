@@ -4,10 +4,6 @@ import numpy as np
 import openai
 import math
 import os
-from io import BytesIO
-
-
-
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -15,7 +11,7 @@ from io import BytesIO
 
 st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="wide")
 
-# CSS geral de UX (sem sidebar, dark clean)
+# CSS geral de UX (sem sidebar)
 st.markdown(
     """
 <style>
@@ -61,7 +57,6 @@ Radar Publix — inteligência para evoluir capacidades.
     unsafe_allow_html=True,
 )
 
-
 # -------------------
 # API KEY
 # -------------------
@@ -72,11 +67,12 @@ else:
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
 
 # -------------------
-# CSS extra (scroll-box se quiser usar)
+# CSS extra
 # -------------------
 
-# --- BLOCO 1 ---
-st.markdown("""
+# BLOCO 1 – esconder menus
+st.markdown(
+    """
 <style>
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
@@ -86,10 +82,13 @@ footer {visibility: hidden;}
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# --- BLOCO 2 ---
-st.markdown("""
+# BLOCO 2 – alert em amarelo Publix
+st.markdown(
+    """
 <style>
 /* Caixa de aviso (alert) nas cores Publix */
 div[data-testid="stAlert"] {
@@ -103,11 +102,13 @@ div[data-testid="stAlert"] * {
     color: #000000 !important;    /* texto preto */
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-
-# --- BLOCO 3 (o CSS que estava solto) ---
-st.markdown("""
+# BLOCO 3 – extras (scroll box e remoção de botões)
+st.markdown(
+    """
 <style>
 /* Remove barra inferior "Manage app" extra */
 .stAppDeployButton {display: none !important;}
@@ -116,7 +117,7 @@ button[title="Manage app"] {display: none !important;}
 /* Remove barra preta no canto inferior */
 [data-testid="stStatusWidget"] {display: none !important;}
 
-/* Scroll box */
+/* Scroll box (se precisar) */
 .scroll-box {
     max-height: 450px;
     overflow-y: auto;
@@ -134,13 +135,14 @@ div[data-testid="ManageAppButton"] {
     display: none !important;
 }
 
-/* Esconde container fixo */
+/* Esconde qualquer container fixo no canto inferior direito */
 div[style*="position: fixed"][style*="bottom"][style*="right"] {
     display: none !important;
 }
 </style>
-""", unsafe_allow_html=True)
-
+""",
+    unsafe_allow_html=True,
+)
 
 # -------------------
 # QUESTÕES DO DIAGNÓSTICO
@@ -205,14 +207,14 @@ QUESTOES = [
     {"id": "3.6.1", "texto": "Os acordos formalizados por meio de cooperação técnica, parcerias, convênios, contratos, termos de ajustamento e instrumentos congêneres contém regras para propriedade, posse compartilhada e uso público de informações, bases de dados, sistemas de informação e tecnologias", "dimensao": "Monitoramento e Avaliação"},
     {"id": "3.6.2", "texto": "A organização dispõe de recursos humanos, financeiros, administrativos e tecnológicos para participar das instâncias e mecanismos de governança?", "dimensao": "Monitoramento e Avaliação"},
     {"id": "3.6.3", "texto": "Existem ações para fortalecer a capacidade de coordenadores e articuladores de políticas e programas, visando melhorar a sua atuação nas instâncias de governança?", "dimensao": "Monitoramento e Avaliação"},
-    {"id": "3.7.1", "texto": "A organização realiza avaliações para analisar o desempenho das políticas e programas nos quais atua?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.7.2", "texto": "As avaliações seguem procedimentos de institucionalização, incluindo processos para composição de equipes (área responsável, avaliadores, beneficiários diretos, etc.), acesso a dados, partilha de informações, recuperação de base documental e de dados, etc.?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.7.3", "texto": "A organização dispõe de instrumentos para elaborar propostas e executar ajustes nas políticas e programas com base nas avaliações realizadas?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.7.4", "texto": "A organização promove ações de capacitação específica visando fortalecer a capacidade de lidar com resultados advindos das avaliações e aprimorar o arcabouço legal e institucional que orienta a formulação, implementação, monitoramento e avaliação das políticas e programas?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.8.1", "texto": "A organização utiliza avaliações para fortalecer a capacidade de coordenação política e articulações para a governança das políticas e programas?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.8.2", "texto": "A organização utiliza avaliações para fortalecer arranjos colaborativos, assegurar o aprofundamento da coordenação política e fortalecer mecanismos de colaboração em rede?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.8.3", "texto": "A organização utiliza os resultados das avaliações no processo de alinhamento dos objetivos e metas das políticas e programas aos desafios de desenvolvimento econômico, social e ambiental?", "dimensao": "Monitoramento e Avaliação,"},
-    {"id": "3.8.4", "texto": "A organização utiliza os resultados das avaliações para auxiliar no processo de coordenação e articulação com órgãos de controle externo?", "dimensao": "Monitoramento e Avaliação,"},
+    {"id": "3.7.1", "texto": "A organização realiza avaliações para analisar o desempenho das políticas e programas nos quais atua?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.7.2", "texto": "As avaliações seguem procedimentos de institucionalização, incluindo processos para composição de equipes (área responsável, avaliadores, beneficiários diretos, etc.), acesso a dados, partilha de informações, recuperação de base documental e de dados, etc.?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.7.3", "texto": "A organização dispõe de instrumentos para elaborar propostas e executar ajustes nas políticas e programas com base nas avaliações realizadas?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.7.4", "texto": "A organização promove ações de capacitação específica visando fortalecer a capacidade de lidar com resultados advindos das avaliações e aprimorar o arcabouço legal e institucional que orienta a formulação, implementação, monitoramento e avaliação das políticas e programas?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.8.1", "texto": "A organização utiliza avaliações para fortalecer a capacidade de coordenação política e articulações para a governança das políticas e programas?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.8.2", "texto": "A organização utiliza avaliações para fortalecer arranjos colaborativos, assegurar o aprofundamento da coordenação política e fortalecer mecanismos de colaboração em rede?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.8.3", "texto": "A organização utiliza os resultados das avaliações no processo de alinhamento dos objetivos e metas das políticas e programas aos desafios de desenvolvimento econômico, social e ambiental?", "dimensao": "Monitoramento e Avaliação"},
+    {"id": "3.8.4", "texto": "A organização utiliza os resultados das avaliações para auxiliar no processo de coordenação e articulação com órgãos de controle externo?", "dimensao": "Monitoramento e Avaliação"},
 ]
 
 VALORES_ESCALA = {
@@ -222,12 +224,12 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
+# Médias da base nacional por dimensão
 OBSERVATORIO_MEANS = {
     "Agenda Estratégica": 1.92,
     "Estrutura da Implementação": 1.53,
     "Monitoramento e Avaliação": 1.47,
 }
-
 
 BASE_SINTETICA = """
 Base nacional do Observatório de Maturidade – resumo sintético
@@ -273,8 +275,7 @@ Insight crítico: o Executivo é o mais frequente na amostra, mas apresenta a me
 Use sempre essa lógica ao comparar o diagnóstico do órgão do usuário com a base nacional.
 """
 
-
-# Médias da base por Poder (retiradas do BI)
+# Médias da base por Poder
 BASE_MEDIA_POR_PODER = {
     "organismo internacional": 1.93,
     "empresa pública": 1.87,
@@ -284,14 +285,13 @@ BASE_MEDIA_POR_PODER = {
     "confederação": 1.57,
 }
 
-# Médias da base por Esfera (retiradas do BI)
+# Médias da base por Esfera
 BASE_MEDIA_POR_ESFERA = {
     "federal": 1.76,
     "estadual": 1.41,
     "municipal": 1.35,
     "privado": 1.81,
     "organismo internacional": 1.93,
-    # se quiser, pode adicionar "3º setor" depois que tiver o valor certinho
 }
 
 def _normalizar_label(texto: str) -> str | None:
@@ -299,7 +299,6 @@ def _normalizar_label(texto: str) -> str | None:
         return None
     t = texto.strip().lower()
 
-    # mapeia algumas variações comuns
     substituicoes = {
         "poder executivo": "executivo",
         "poder legislativo": "legislativo",
@@ -312,8 +311,7 @@ def _normalizar_label(texto: str) -> str | None:
     t = substituicoes.get(t, t)
     return t
 
-
-# Mapeia o nome usado no questionário para o nome da base do Observatório
+# Alias de dimensão
 DIM_ALIAS = {
     "Alinhamento da Estrutura implementadora": "Estrutura da Implementação",
 }
@@ -322,45 +320,37 @@ DIM_ALIAS = {
 # FUNÇÕES AUXILIARES
 # -------------------
 
-
 def calcular_medias_por_dimensao(respostas_dict):
-    """
-    respostas_dict: {id_questao: nota}
-    Usa QUESTOES para somar por dimensão e tirar a média.
-    Retorna um dict: {dimensao_normalizada: média}
-    """
     df = pd.DataFrame(QUESTOES)
-
-    # Normaliza o nome da dimensão e aplica o alias para casar com a base
     df["dim_key"] = (
         df["dimensao"]
         .astype(str)
         .str.strip()
         .str.rstrip(",")
-        .replace(DIM_ALIAS)  # <- aqui fazemos "Alinhamento..." -> "Estrutura da Implementação"
+        .replace(DIM_ALIAS)
     )
-
     df["nota"] = df["id"].map(respostas_dict)
     medias = df.groupby("dim_key")["nota"].mean().round(2).to_dict()
     return medias
 
-
-def montar_perfil_texto(instituicao, poder, esfera, estado,
-                        respostas_dict, medias_dimensao, observatorio_means):
-    """
-    Gera um texto estruturado sobre o órgão, para ser passado como contexto para a IA.
-    Agora inclui comparações com a base por Poder e por Esfera.
-    """
+def montar_perfil_texto(
+    instituicao,
+    poder,
+    esfera,
+    estado,
+    respostas_dict,
+    medias_dimensao,
+):
     linhas = []
 
-    # --- Identificação básica ---
+    # Identificação
     linhas.append(f"Instituição avaliada: {instituicao or 'Não informada'}")
     linhas.append(f"Poder: {poder or 'Não informado'}")
     linhas.append(f"Esfera: {esfera or 'Não informada'}")
     linhas.append(f"Estado: {estado or 'Não informado'}")
     linhas.append("")
 
-    # --- Comparação por Poder / Esfera com a base do Observatório ---
+    # Comparação geral por poder/esfera
     poder_norm = _normalizar_label(poder)
     esfera_norm = _normalizar_label(esfera)
 
@@ -369,21 +359,21 @@ def montar_perfil_texto(instituicao, poder, esfera, estado,
 
     if media_poder_base is not None:
         linhas.append(
-            f"No Observatório de Maturidade, a média geral de maturidade para o "
-            f"poder '{poder}' é {media_poder_base:.2f}."
+            f"No Observatório de Maturidade, a média geral de maturidade para o poder "
+            f"'{poder}' é {media_poder_base:.2f}."
         )
     if media_esfera_base is not None:
         linhas.append(
-            f"Na esfera '{esfera}', a média geral de maturidade observada na base "
-            f"é {media_esfera_base:.2f}."
+            f"Na esfera '{esfera}', a média geral de maturidade observada na base é "
+            f"{media_esfera_base:.2f}."
         )
     if media_poder_base is not None or media_esfera_base is not None:
         linhas.append("")
 
-    # --- Resumo por dimensão (comparando com a base) ---
+    # Resumo por dimensão
     linhas.append("Resumo das notas por dimensão (escala 0 a 3):")
     for dim, media_orgao in medias_dimensao.items():
-        media_base = observatorio_means.get(dim)
+        media_base = OBSERVATORIO_MEANS.get(dim)
         if media_base is not None and not pd.isna(media_base):
             diff = round(media_orgao - media_base, 2)
             if diff > 0.1:
@@ -408,7 +398,6 @@ def montar_perfil_texto(instituicao, poder, esfera, estado,
 
     return "\n".join(linhas)
 
-
 def chamar_ia(perfil_texto, user_message, chat_history):
     system_prompt = """
 Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
@@ -428,12 +417,12 @@ Regras:
         {"role": "system", "content": system_prompt},
         {
             "role": "system",
-            "content": "A seguir estão os principais achados da base nacional do Observatório de Maturidade:"
+            "content": "A seguir estão os principais achados da base nacional do Observatório de Maturidade:",
         },
         {"role": "system", "content": BASE_SINTETICA},
         {
             "role": "system",
-            "content": "A seguir está o diagnóstico estruturado da organização do usuário:"
+            "content": "A seguir está o diagnóstico estruturado da organização do usuário:",
         },
         {"role": "system", "content": perfil_texto},
     ]
@@ -451,9 +440,6 @@ Regras:
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
-
-
-
 
 # -------------------
 # STATE INICIAL
@@ -490,7 +476,6 @@ with col_form:
     poder = st.text_input("Poder (ex.: Executivo, Judiciário, Legislativo)", "")
     esfera = st.text_input("Esfera (ex.: Federal, Estadual, Municipal)", "")
     estado = st.text_input("Estado (UF)", "")
-
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
@@ -559,7 +544,6 @@ with col_form:
             estado,
             respostas,
             medias_dim,
-            observatorio_means,
         )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
@@ -569,51 +553,34 @@ with col_form:
 
         st.write("### Resumo do diagnóstico (por dimensão)")
         for dim, media in medias_dim.items():
-            base = observatorio_means.get(dim)
+            base = OBSERVATORIO_MEANS.get(dim)
             if base is not None:
-                st.write(f"- **{dim}**: {media} (base: {base:.2f})")
+                st.write(f"- **{dim}**: {media:.2f} (base: {base:.2f})")
             else:
-                st.write(f"- **{dim}**: {media}")
+                st.write(f"- **{dim}**: {media:.2f}")
 
-            # Botão para imprimir / salvar o diagnóstico em PDF (via navegador)
-            st.markdown(
-                """
-                <div style="text-align: right; margin-top: 1rem;">
-                    <button
-                        onclick="window.print()"
-                        style="
-                            background-color: #FFC728;
-                            border: none;
-                            padding: 0.6rem 1.2rem;
-                            border-radius: 999px;
-                            font-weight: 600;
-                            cursor: pointer;
-                            font-size: 0.95rem;
-                        "
-                    >
-                        Imprimir / salvar diagnóstico em PDF
-                    </button>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-
-    
-
-
-
-        # DEBUG opcional para você conferir nota por questão
-        df_debug = pd.DataFrame(QUESTOES)
-        df_debug["nota"] = df_debug["id"].map(respostas)
-        with st.expander("Ver respostas detalhadas (debug)"):
-            st.dataframe(df_debug[["id", "dimensao", "nota"]])
-
-        with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
-            st.text(st.session_state.diagnostico_perfil_texto)
-
-    
-
+        # Botão de imprimir/salvar PDF (via navegador)
+        st.markdown(
+            """
+            <div style="text-align: right; margin-top: 1rem;">
+                <button
+                    onclick="window.print()"
+                    style="
+                        background-color: #FFC728;
+                        border: none;
+                        padding: 0.6rem 1.2rem;
+                        border-radius: 999px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        font-size: 0.95rem;
+                    "
+                >
+                    Imprimir / salvar diagnóstico em PDF
+                </button>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
@@ -624,7 +591,7 @@ with col_chat:
     elif "OPENAI_API_KEY" not in st.secrets:
         st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
-        # Mostra o histórico
+        # histórico
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
                 with st.chat_message("user"):
@@ -633,21 +600,17 @@ with col_chat:
                 with st.chat_message("assistant"):
                     st.markdown(msg["content"])
 
-        # Caixa de entrada do chat
         prompt = st.chat_input(
             "Faça uma pergunta para a IA sobre o diagnóstico da sua organização..."
         )
 
         if prompt:
-            # Adiciona mensagem do usuário ao histórico
             user_msg = {"role": "user", "content": prompt}
             st.session_state.chat_history.append(user_msg)
 
-            # Mostra imediatamente a mensagem do usuário
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            # Gera resposta da IA
             with st.chat_message("assistant"):
                 with st.spinner("Gerando resposta da IA..."):
                     resposta = chamar_ia(
@@ -657,7 +620,6 @@ with col_chat:
                     )
                     st.markdown(resposta)
 
-            # Salva resposta no histórico
             st.session_state.chat_history.append(
                 {"role": "assistant", "content": resposta}
             )
