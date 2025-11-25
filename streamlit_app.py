@@ -491,28 +491,34 @@ with col_chat:
 # -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
 components.html(
     """
-    <button
-        onclick="window.parent.print()"
+    <div
         style="
             position: fixed;
             bottom: 20px;
             right: 20px;
             z-index: 9999;
-            background-color: #FFC728;
-            border: none;
-            padding: 0.8rem 1.6rem;
-            border-radius: 999px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
         "
     >
-        Imprimir / salvar diagnóstico em PDF
-    </button>
+        <button
+            onclick="window.print()"
+            style="
+                background-color: #FFC728;
+                border: none;
+                padding: 0.8rem 1.6rem;
+                border-radius: 999px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.95rem;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+            "
+        >
+            Imprimir / salvar diagnóstico em PDF
+        </button>
+    </div>
     """,
-    height=0,
+    height=80,
 )
+
 
 
 st.markdown(
