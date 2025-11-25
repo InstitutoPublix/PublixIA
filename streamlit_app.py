@@ -66,7 +66,7 @@ st.markdown(
 <h1 style='margin-bottom: -10px;'>Radar Publix</h1>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
-O <strong>Radar Publix</strong> é a camada inteligente do Observatório de Maturidade, criada para transformar dados em clareza.
+O <strong>IA Observatório da Governança para Resultados</strong> é a camada inteligente do Observatório de Maturidade, criada para transformar dados em clareza.
 Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
 
