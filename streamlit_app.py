@@ -453,26 +453,26 @@ with col_form:
 
         # BOTÃO DE IMPRIMIR (usa o print do navegador)
         components.html(
-            """
-            <div style="text-align: right; margin-top: 1rem;">
-                <button
-                    onclick="window.print()"
-                    style="
-                        background-color: #FFC728;
-                        border: none;
-                        padding: 0.6rem 1.4rem;
-                        border-radius: 999px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        font-size: 0.95rem;
-                    "
-                >
-                    Imprimir / salvar diagnóstico em PDF
-                </button>
-            </div>
-            """,
-            height=80,
-        )
+    """
+    <div style="text-align: right; margin-top: 1rem;">
+        <button
+            onclick="window.parent.print()"
+            style="
+                background-color: #FFC728;
+                border: none;
+                padding: 0.6rem 1.4rem;
+                border-radius: 999px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.95rem;
+            "
+        >
+            Imprimir / salvar diagnóstico em PDF
+        </button>
+    </div>
+    """,
+    height=80,
+)
 
         # Debug
         df_debug = pd.DataFrame(QUESTOES)
