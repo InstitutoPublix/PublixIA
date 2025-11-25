@@ -141,45 +141,6 @@ div[style*="position: fixed"][style*="bottom"][style*="right"] {
 
 
 # -------------------
-# CARREGAR DADOS DO OBSERVATÓRIO
-# -------------------
-
-@st.cache_data
-def load_observatory_stats(path_csv: str = "observatorio_resumo.csv"):
-    """
-    Esperado: um CSV com colunas:
-    - dimension: nome da dimensão
-    - mean_score: média da base
-    """
-    try:
-        if os.path.exists(path_csv):
-            df = pd.read_csv(path_csv)
-            return df
-
-        st.warning("Arquivo observatorio_resumo.csv não encontrado.")
-        return None
-
-    except Exception as e:
-        st.warning(f"Erro ao carregar observatório: {e}")
-        return None
-
-
-observatorio_df = load_observatory_stats()
-
-# Transformar em dict {dimensão_normalizada: média}
-observatorio_means = {}
-if (
-    observatorio_df is not None
-    and "dimension" in observatorio_df.columns
-    and "mean_score" in observatorio_df.columns
-):
-    tmp = observatorio_df.copy()
-    tmp["dim_key"] = tmp["dimension"].astype(str).str.strip().str.rstrip(",")
-    observatorio_means = tmp.set_index("dim_key")["mean_score"].to_dict()
-
-
-
-# -------------------
 # QUESTÕES DO DIAGNÓSTICO
 # -------------------
 
@@ -258,6 +219,13 @@ VALORES_ESCALA = {
     2: "2 - Parcialmente estruturado",
     3: "3 - Bem estruturado",
 }
+
+OBSERVATORIO_MEANS = {
+    "Agenda Estratégica": 1.92,
+    "Estrutura da Implementação": 1.53,
+    "Monitoramento e Avaliação": 1.47,
+}
+
 
 BASE_SINTETICA = """
 Base nacional do Observatório de Maturidade – resumo sintético
@@ -589,8 +557,9 @@ with col_form:
             estado,
             respostas,
             medias_dim,
-            observatorio_means,
-        )
+            OBSERVATORIO_MEANS,
+    )
+
 
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
@@ -600,11 +569,12 @@ with col_form:
 
         st.write("### Resumo do diagnóstico (por dimensão)")
         for dim, media in medias_dim.items():
-            base = observatorio_means.get(dim)
+            base = OBSERVATORIO_MEANS.get(dim)
             if base is not None:
                 st.write(f"- **{dim}**: {media} (base: {base:.2f})")
             else:
                 st.write(f"- **{dim}**: {media}")
+
 
         # DEBUG opcional para você conferir nota por questão
         df_debug = pd.DataFrame(QUESTOES)
