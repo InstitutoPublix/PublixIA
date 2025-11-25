@@ -75,7 +75,7 @@ Combinando análise de dados, linguagem natural e a experiência do Instituto Pu
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55; font-weight: 600;'>
-Observatório de Governança para Resultados — inteligência pare evoluir capacidades na geração de resultados sustentáveis.
+Observatório de Governança para Resultados — inteligência para evoluir capacidades na geração de resultados sustentáveis.
 </p>
 """,
     unsafe_allow_html=True,
