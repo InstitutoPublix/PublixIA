@@ -63,7 +63,7 @@ div[data-testid="stAlert"] * {
 
 st.markdown(
     """
-<h1 style='margin-bottom: -10px;'>Radar Publix</h1>
+<h1 style='margin-bottom: -10px;'>IA Observatório de Governança para Resultados</h1>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
 O <strong>IA Observatório da Governança para Resultados</strong> é a camada inteligente do Observatório de Maturidade, criada para transformar dados em clareza.
