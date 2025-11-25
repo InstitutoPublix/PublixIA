@@ -4,7 +4,6 @@ import numpy as np
 import openai
 import math
 import os
-from fpdf import FPDF
 from io import BytesIO
 
 
@@ -344,73 +343,6 @@ def limpar_texto_pdf(texto: str) -> str:
     return texto.encode("latin-1", "replace").decode("latin-1")
 
 
-def criar_pdf_diagnostico(
-    instituicao,
-    poder,
-    esfera,
-    estado,
-    medias_dim,
-    observatorio_means,
-    respostas_dict,
-):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-
-    # Título
-    pdf.set_font("Helvetica", "B", 16)
-    pdf.multi_cell(
-        0,
-        10,
-        limpar_texto_pdf("Radar Publix – Diagnóstico de Maturidade"),
-    )
-    pdf.ln(4)
-
-    # Bloco de identificação
-    pdf.set_font("Helvetica", size=11)
-    header = (
-        f"Instituição: {instituicao or 'Não informada'}\n"
-        f"Poder: {poder or 'Não informado'}\n"
-        f"Esfera: {esfera or 'Não informada'}\n"
-        f"Estado: {estado or 'Não informado'}"
-    )
-    pdf.multi_cell(0, 6, limpar_texto_pdf(header))
-    pdf.ln(4)
-
-    # Resumo por dimensão
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.multi_cell(0, 8, limpar_texto_pdf("Resumo do diagnóstico por dimensão"))
-    pdf.ln(2)
-
-    pdf.set_font("Helvetica", size=11)
-    for dim, media_orgao in medias_dim.items():
-        base = observatorio_means.get(dim)
-        if base is not None:
-            linha = f"- {dim}: {media_orgao:.2f} (base: {base:.2f})"
-        else:
-            linha = f"- {dim}: {media_orgao:.2f}"
-        pdf.multi_cell(0, 6, limpar_texto_pdf(linha))
-
-    pdf.ln(4)
-
-    # Notas por questão
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.multi_cell(0, 8, limpar_texto_pdf("Notas por questão"))
-    pdf.ln(2)
-
-    pdf.set_font("Helvetica", size=9)
-    for q in QUESTOES:
-        nota = respostas_dict.get(q["id"])
-        linha = f"{q['id']} – {q['dimensao']}: {q['texto']} -> nota {nota}"
-        pdf.multi_cell(0, 5, limpar_texto_pdf(linha))
-        pdf.ln(1)
-
-    # Exporta para buffer em memória
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
-    buffer = io.BytesIO(pdf_bytes)
-    buffer.seek(0)
-    return buffer
-
 
 def calcular_medias_por_dimensao(respostas_dict):
     """
@@ -694,25 +626,31 @@ with col_form:
             else:
                 st.write(f"- **{dim}**: {media}")
 
-        # 🔽 NOVO: botão para baixar o PDF
-        pdf_buffer = criar_pdf_diagnostico(
-            instituicao,
-            poder,
-            esfera,
-            estado,
-            medias_dim,
-            observatorio_means,
-            respostas,
-        )
+            # Botão para imprimir / salvar o diagnóstico em PDF (via navegador)
+            st.markdown(
+                """
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button
+                        onclick="window.print()"
+                        style="
+                            background-color: #FFC728;
+                            border: none;
+                            padding: 0.6rem 1.2rem;
+                            border-radius: 999px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            font-size: 0.95rem;
+                        "
+                    >
+                        Imprimir / salvar diagnóstico em PDF
+                    </button>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
-        st.download_button(
-            label="📄 Baixar diagnóstico em PDF",
-            data=pdf_buffer,
-            file_name="diagnostico_radar_publix.pdf",
-            mime="application/pdf",
-        )
 
-        # (mantém os expanders de debug abaixo se quiser)
+    
 
 
 
