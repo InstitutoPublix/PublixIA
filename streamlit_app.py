@@ -612,20 +612,7 @@ with col_form:
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
 
-    # Botão para baixar o diagnóstico em PDF (se já houver diagnóstico gerado)
-    if st.session_state.diagnostico_perfil_texto:
-        pdf_buffer = criar_pdf_diagnostico(
-            st.session_state.diagnostico_perfil_texto,
-            instituicao=instituicao,
-        )
-
-        st.download_button(
-            label="📄 Baixar diagnóstico em PDF",
-            data=pdf_buffer,
-            file_name="diagnostico_maturidade.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-        )
+    
 
 
 # -------- COLUNA DIREITA: CHAT --------
