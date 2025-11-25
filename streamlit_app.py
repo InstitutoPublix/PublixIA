@@ -83,15 +83,7 @@ Radar Publix — inteligência para evoluir capacidades.
     unsafe_allow_html=True,
 )
 
-st.markdown("""
-<script>
-window.addEventListener("message", (event) => {
-    if (event.data === "print_page") {
-        window.print();
-    }
-});
-</script>
-""", unsafe_allow_html=True)
+
 
 
 # -------------------
@@ -501,6 +493,24 @@ with col_chat:
 # -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
 components.html(
     """
+    <script>
+    function printPage() {
+        try {
+            // Tenta imprimir a página "pai" (onde está o app Streamlit)
+            if (window.parent && window.parent !== window) {
+                window.parent.print();
+            } else if (window.top) {
+                window.top.print();
+            } else {
+                window.print();
+            }
+        } catch (e) {
+            // Se der algum erro de cross-origin, tenta pelo próprio iframe
+            window.print();
+        }
+    }
+    </script>
+
     <div
         style="
             position: fixed;
@@ -510,7 +520,7 @@ components.html(
         "
     >
         <button
-            onclick="window.parent.postMessage('print_page', '*')"
+            onclick="printPage()"
             style="
                 background-color: #FFC728;
                 border: none;
