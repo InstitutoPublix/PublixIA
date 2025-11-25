@@ -39,11 +39,11 @@ footer {visibility: hidden;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
 
-/* Oculta botão flutuante extra */
+/* Oculta botão flutuante extra padrão do Streamlit (deploy etc.) 
+   MAS NÃO esconde qualquer div fixa no canto direito */
 button[aria-label="Manage app"],
 div[data-testid="manage-app-button"],
-div[data-testid="ManageAppButton"],
-div[style*="position: fixed"][style*="bottom"][style*="right"] {
+div[data-testid="ManageAppButton"] {
     display: none !important;
 }
 
@@ -97,7 +97,6 @@ else:
 # QUESTÕES
 # -------------------
 QUESTOES = [
-    # (mantive exatamente como você enviou)
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidad...xternos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.3", "texto": " Realiza-se a gestão de stakeholders (partes interessadas) que atuam na formulação/revisão das estratégias da organização?", "dimensao": "Agenda Estratégica"},
@@ -173,7 +172,7 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
-# médias nacionais por dimensão (o que antes vinha do CSV)
+# médias nacionais por dimensão
 observatorio_means = {
     "Agenda Estratégica": 1.92,
     "Estrutura da Implementação": 1.53,
@@ -451,31 +450,6 @@ with col_form:
             else:
                 st.write(f"- *{dim}*: {media:.2f}")
 
-        # BOTÃO DE IMPRIMIR (usa o print do navegador)
-        components.html(
-    """
-    <div style="text-align: right; margin-top: 1rem;">
-        <button
-            onclick="window.parent.print()"
-            style="
-                background-color: #FFC728;
-                border: none;
-                padding: 0.6rem 1.4rem;
-                border-radius: 999px;
-                font-weight: 600;
-                cursor: pointer;
-                font-size: 0.95rem;
-            "
-        >
-            Imprimir / salvar diagnóstico em PDF
-        </button>
-    </div>
-    """,
-    height=80,
-)
-
-
-
 
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
@@ -512,6 +486,34 @@ with col_chat:
                     st.markdown(resposta)
 
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+
+
+# -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
+components.html(
+    """
+    <button
+        onclick="window.parent.print()"
+        style="
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            background-color: #FFC728;
+            border: none;
+            padding: 0.8rem 1.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+        "
+    >
+        Imprimir / salvar diagnóstico em PDF
+    </button>
+    """,
+    height=0,
+)
+
 
 st.markdown(
     """
