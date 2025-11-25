@@ -83,6 +83,16 @@ Radar Publix — inteligência para evoluir capacidades.
     unsafe_allow_html=True,
 )
 
+st.markdown("""
+<script>
+window.addEventListener("message", (event) => {
+    if (event.data === "print_page") {
+        window.print();
+    }
+});
+</script>
+""", unsafe_allow_html=True)
+
 
 # -------------------
 # API KEY
@@ -500,7 +510,7 @@ components.html(
         "
     >
         <button
-            onclick="window.print()"
+            onclick="window.parent.postMessage('print_page', '*')"
             style="
                 background-color: #FFC728;
                 border: none;
@@ -518,6 +528,7 @@ components.html(
     """,
     height=80,
 )
+
 
 
 
