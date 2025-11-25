@@ -4,6 +4,9 @@ import numpy as np
 import openai
 import math
 import os
+from fpdf import FPDF
+from io import BytesIO
+
 
 
 
@@ -449,6 +452,36 @@ Regras:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
+def criar_pdf_diagnostico(texto: str, instituicao: str | None = None) -> BytesIO:
+    """
+    Gera um PDF simples com o texto do diagnóstico e retorna um buffer em memória.
+    """
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    pdf.set_title("Diagnóstico de Maturidade")
+    pdf.set_author("Radar Publix")
+
+    # Título
+    pdf.set_font("Helvetica", "B", 16)
+    titulo = "Diagnóstico de Maturidade"
+    if instituicao:
+        titulo += f" - {instituicao}"
+    pdf.multi_cell(0, 10, titulo)
+    pdf.ln(8)
+
+    # Corpo do texto
+    pdf.set_font("Helvetica", "", 11)
+    for linha in texto.split("\n"):
+        if linha.strip() == "":
+            pdf.ln(4)  # linha em branco = espaçamento
+        else:
+            pdf.multi_cell(0, 7, linha)
+
+    # Gera bytes em memória
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
+    return BytesIO(pdf_bytes)
 
 
 
@@ -585,7 +618,22 @@ with col_form:
         with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
             st.text(st.session_state.diagnostico_perfil_texto)
 
-# -------- COLUNA DIREITA: CHAT --------
+    # Botão para baixar o diagnóstico em PDF (se já houver diagnóstico gerado)
+    if st.session_state.diagnostico_perfil_texto:
+        pdf_buffer = criar_pdf_diagnostico(
+            st.session_state.diagnostico_perfil_texto,
+            instituicao=instituicao,
+        )
+
+        st.download_button(
+            label="📄 Baixar diagnóstico em PDF",
+            data=pdf_buffer,
+            file_name="diagnostico_maturidade.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
+
+
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
