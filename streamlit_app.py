@@ -322,27 +322,6 @@ DIM_ALIAS = {
 # FUNÇÕES AUXILIARES
 # -------------------
 
-def limpar_texto_pdf(texto: str) -> str:
-    """
-    FPDF só aceita latin-1. Aqui trocamos alguns caracteres problemáticos
-    e garantimos que o texto seja convertido sem quebrar.
-    """
-    if texto is None:
-        return ""
-
-    texto = (
-        str(texto)
-        .replace("–", "-")
-        .replace("—", "-")
-        .replace("“", '"')
-        .replace("”", '"')
-        .replace("’", "'")
-    )
-
-    # força para latin-1, substituindo o que não existir
-    return texto.encode("latin-1", "replace").decode("latin-1")
-
-
 
 def calcular_medias_por_dimensao(respostas_dict):
     """
@@ -473,36 +452,6 @@ Regras:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
-def criar_pdf_diagnostico(texto: str, instituicao: str | None = None) -> BytesIO:
-    """
-    Gera um PDF simples com o texto do diagnóstico e retorna um buffer em memória.
-    """
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-
-    pdf.set_title("Diagnóstico de Maturidade")
-    pdf.set_author("Radar Publix")
-
-    # Título
-    pdf.set_font("Helvetica", "B", 16)
-    titulo = "Diagnóstico de Maturidade"
-    if instituicao:
-        titulo += f" - {instituicao}"
-    pdf.multi_cell(0, 10, titulo)
-    pdf.ln(8)
-
-    # Corpo do texto
-    pdf.set_font("Helvetica", "", 11)
-    for linha in texto.split("\n"):
-        if linha.strip() == "":
-            pdf.ln(4)  # linha em branco = espaçamento
-        else:
-            pdf.multi_cell(0, 7, linha)
-
-    # Gera bytes em memória
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
-    return BytesIO(pdf_bytes)
 
 
 
