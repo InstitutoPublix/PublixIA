@@ -63,21 +63,19 @@ div[data-testid="stAlert"] * {
 
 st.markdown(
     """
-<h1 style='margin-bottom: -10px;'>IA Observatório de Governança para Resultados</h1>
+<h1 style='margin-bottom: -10px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
-O <strong>IA Observatório da Governança para Resultados</strong> é a camada inteligente do Observatório de Maturidade, criada para transformar dados em clareza.
-Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
+A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong>  é a camada inteligente do Observatório de Governança para Resultados, criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
-Combinando análise de dados, linguagem natural e a experiência da Publix em gestão pública,
-o Radar oferece uma visão integrada e acionável sobre a maturidade institucional.
-É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
+Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, o Radar oferece uma visão integrada e acionável sobre a maturidade institucional. É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
+
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55; font-weight: 600;'>
-Radar Publix — inteligência para evoluir capacidades.
+Observatório de Governança para Resultados — inteligência para evoluir capacidades.
 </p>
 """,
     unsafe_allow_html=True,
