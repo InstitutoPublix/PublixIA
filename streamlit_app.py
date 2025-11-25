@@ -4,6 +4,9 @@ import numpy as np
 import openai
 import math
 import os
+from io import BytesIO
+import streamlit.components.v1 as components  # <--- ADD
+
 
 # -------------------
 # CONFIGURAÇÕES GERAIS
@@ -560,7 +563,8 @@ with col_form:
                 st.write(f"- **{dim}**: {media:.2f}")
 
         # Botão de imprimir/salvar PDF (via navegador)
-        st.markdown(
+                # Botão para imprimir / salvar o diagnóstico em PDF (via navegador)
+        components.html(
             """
             <div style="text-align: right; margin-top: 1rem;">
                 <button
@@ -568,7 +572,7 @@ with col_form:
                     style="
                         background-color: #FFC728;
                         border: none;
-                        padding: 0.6rem 1.2rem;
+                        padding: 0.6rem 1.6rem;
                         border-radius: 999px;
                         font-weight: 600;
                         cursor: pointer;
@@ -579,7 +583,8 @@ with col_form:
                 </button>
             </div>
             """,
-            unsafe_allow_html=True,
+            height=80,
+            scrolling=False,
         )
 
 # -------- COLUNA DIREITA: CHAT --------
