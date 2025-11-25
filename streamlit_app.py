@@ -369,11 +369,14 @@ if "respostas_dict" not in st.session_state:
 if "pagina_quest" not in st.session_state:
     st.session_state.pagina_quest = 1
 
+if "medias_dim" not in st.session_state:
+    st.session_state.medias_dim = None
+
 
 # -------------------
-# LAYOUT – FORMULÁRIO (COLUNA)
+# LAYOUT  (colunas com mesma largura)
 # -------------------
-col_form, _ = st.columns([2, 3])  # só usamos a primeira coluna
+col_form, col_chat = st.columns([1, 1])
 
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
@@ -424,11 +427,14 @@ with col_form:
     with col3:
         gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
+    # Quando clicar em "Gerar diagnóstico", recalcula e salva no state
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
         st.session_state.diagnostico_respostas = respostas
 
         medias_dim = calcular_medias_por_dimensao(respostas)
+        st.session_state.medias_dim = medias_dim
+
         perfil_txt = montar_perfil_texto(
             instituicao,
             poder,
@@ -439,26 +445,28 @@ with col_form:
         )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
-        st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na parte inferior da página.")
+    # ------ BLOCO SEMPRE VISÍVEL APÓS TER DIAGNÓSTICO ------
+    if st.session_state.diagnostico_perfil_texto is not None:
+        st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado.")
 
         st.write("### Resumo do diagnóstico (por dimensão)")
-        for dim, media in medias_dim.items():
+        for dim, media in st.session_state.medias_dim.items():
             base = observatorio_means.get(dim)
             if base is not None:
                 st.write(f"- **{dim}**: {media:.2f} (base: {base:.2f})")
             else:
                 st.write(f"- **{dim}**: {media:.2f}")
 
-        # Botão de imprimir / salvar em PDF (usa print do navegador)
+        # BOTÃO DE IMPRIMIR / PDF – sempre disponível após o diagnóstico
         components.html(
             """
-            <div style="text-align: right; margin-top: 1rem;">
+            <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
                 <button
                     onclick="window.parent.print()"
                     style="
                         background-color: #FFC728;
                         border: none;
-                        padding: 0.6rem 1.4rem;
+                        padding: 0.7rem 1.6rem;
                         border-radius: 999px;
                         font-weight: 600;
                         cursor: pointer;
@@ -469,52 +477,58 @@ with col_form:
                 </button>
             </div>
             """,
-            height=80,
+            height=90,
         )
 
-# -------------------
-# CHAT NO FINAL DA PÁGINA
-# -------------------
-st.markdown("---")
-st.subheader("2. Converse com a IA sobre o seu diagnóstico")
+        # Debug opcional
+        df_debug = pd.DataFrame(QUESTOES)
+        df_debug["nota"] = df_debug["id"].map(st.session_state.diagnostico_respostas)
+        with st.expander("Ver respostas detalhadas (debug)"):
+            st.dataframe(df_debug[["id", "dimensao", "nota"]])
 
-if st.session_state.diagnostico_perfil_texto is None:
-    st.info("Preencha o diagnóstico acima para habilitar o chat.")
-elif "OPENAI_API_KEY" not in st.secrets:
-    st.warning("API Key não encontrada nos secrets do Streamlit.")
-else:
-    # histórico
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
+        with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
+            st.text(st.session_state.diagnostico_perfil_texto)
+
+
+# -------- COLUNA DIREITA: CHAT (mesma largura da esquerda) --------
+with col_chat:
+    st.subheader("2. Converse com a IA sobre o seu diagnóstico")
+
+    if st.session_state.diagnostico_perfil_texto is None:
+        st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
+    elif "OPENAI_API_KEY" not in st.secrets:
+        st.warning("API Key não encontrada nos secrets do Streamlit.")
+    else:
+        # Histórico
+        for msg in st.session_state.chat_history:
+            if msg["role"] == "user":
+                with st.chat_message("user"):
+                    st.markdown(msg["content"])
+            elif msg["role"] == "assistant":
+                with st.chat_message("assistant"):
+                    st.markdown(msg["content"])
+
+        prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
+
+        if prompt:
+            user_msg = {"role": "user", "content": prompt}
+            st.session_state.chat_history.append(user_msg)
+
             with st.chat_message("user"):
-                st.markdown(msg["content"])
-        elif msg["role"] == "assistant":
+                st.markdown(prompt)
+
             with st.chat_message("assistant"):
-                st.markdown(msg["content"])
+                with st.spinner("Gerando resposta da IA..."):
+                    resposta = chamar_ia(
+                        st.session_state.diagnostico_perfil_texto,
+                        prompt,
+                        st.session_state.chat_history,
+                    )
+                    st.markdown(resposta)
 
-    # input do chat
-    prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
-
-    if prompt:
-        user_msg = {"role": "user", "content": prompt}
-        st.session_state.chat_history.append(user_msg)
-
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("Gerando resposta da IA..."):
-                resposta = chamar_ia(
-                    st.session_state.diagnostico_perfil_texto,
-                    prompt,
-                    st.session_state.chat_history,
-                )
-                st.markdown(resposta)
-
-        st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
 
 
-# rodapé
 st.markdown(
     """
 <hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
