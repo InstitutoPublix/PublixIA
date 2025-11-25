@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 import openai
-import streamlit.components.v1 as components
+import streamlit.components.v1 as components  # <-- NOVO
 
 
 # -------------------
@@ -29,30 +29,23 @@ div[data-testid="stSlider"] {
     margin-bottom: 0.7rem !important;
 }
 
-/* Chat mais estreito e alinhado com o texto */
-div[data-testid="stChatMessage"] {
-    max-width: 700px;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-}
-div[data-testid="stChatInput"] {
-    max-width: 700px;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-}
-
 /* Some menu do Streamlit */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Remove "Manage app" padrão */
+/* Remove "Manage app" */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-button[aria-label="Manage app"] {display: none !important;}
-div[data-testid="manage-app-button"] {display: none !important;}
-div[data-testid="ManageAppButton"] {display: none !important;}
+
+/* Oculta botão flutuante extra */
+button[aria-label="Manage app"],
+div[data-testid="manage-app-button"],
+div[data-testid="ManageAppButton"],
+div[style*="position: fixed"][style*="bottom"][style*="right"] {
+    display: none !important;
+}
 
 /* Caixa de alerta nas cores Publix */
 div[data-testid="stAlert"] {
@@ -104,6 +97,7 @@ else:
 # QUESTÕES
 # -------------------
 QUESTOES = [
+    # (mantive exatamente como você enviou)
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidad...xternos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.3", "texto": " Realiza-se a gestão de stakeholders (partes interessadas) que atuam na formulação/revisão das estratégias da organização?", "dimensao": "Agenda Estratégica"},
@@ -179,6 +173,7 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
+# médias nacionais por dimensão (o que antes vinha do CSV)
 observatorio_means = {
     "Agenda Estratégica": 1.92,
     "Estrutura da Implementação": 1.53,
@@ -376,14 +371,11 @@ if "respostas_dict" not in st.session_state:
 if "pagina_quest" not in st.session_state:
     st.session_state.pagina_quest = 1
 
-if "medias_dim" not in st.session_state:
-    st.session_state.medias_dim = None
-
 
 # -------------------
-# LAYOUT  (colunas com mesma largura)
+# LAYOUT
 # -------------------
-col_form, col_chat = st.columns([1, 1])
+col_form, col_chat = st.columns([2, 3])
 
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
@@ -434,14 +426,11 @@ with col_form:
     with col3:
         gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
-    # Quando clicar em "Gerar diagnóstico", recalcula e salva no state
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
         st.session_state.diagnostico_respostas = respostas
 
         medias_dim = calcular_medias_por_dimensao(respostas)
-        st.session_state.medias_dim = medias_dim
-
         perfil_txt = montar_perfil_texto(
             instituicao,
             poder,
@@ -452,29 +441,42 @@ with col_form:
         )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
-    # ------ BLOCO SEMPRE VISÍVEL APÓS TER DIAGNÓSTICO ------
-    if st.session_state.diagnostico_perfil_texto is not None:
         st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado.")
 
         st.write("### Resumo do diagnóstico (por dimensão)")
-        for dim, media in st.session_state.medias_dim.items():
+        for dim, media in medias_dim.items():
             base = observatorio_means.get(dim)
             if base is not None:
-                st.write(f"- **{dim}**: {media:.2f} (base: {base:.2f})")
+                st.write(f"- *{dim}*: {media:.2f} (base: {base:.2f})")
             else:
-                st.write(f"- **{dim}**: {media:.2f}")
+                st.write(f"- *{dim}*: {media:.2f}")
 
-        # Debug opcional
-        df_debug = pd.DataFrame(QUESTOES)
-        df_debug["nota"] = df_debug["id"].map(st.session_state.diagnostico_respostas)
-        with st.expander("Ver respostas detalhadas (debug)"):
-            st.dataframe(df_debug[["id", "dimensao", "nota"]])
+        # BOTÃO DE IMPRIMIR (usa o print do navegador)
+        components.html(
+    """
+    <div style="text-align: right; margin-top: 1rem;">
+        <button
+            onclick="window.parent.print()"
+            style="
+                background-color: #FFC728;
+                border: none;
+                padding: 0.6rem 1.4rem;
+                border-radius: 999px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.95rem;
+            "
+        >
+            Imprimir / salvar diagnóstico em PDF
+        </button>
+    </div>
+    """,
+    height=80,
+)
 
-        with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
-            st.text(st.session_state.diagnostico_perfil_texto)
 
 
-# -------- COLUNA DIREITA: CHAT (mesma largura da esquerda) --------
+
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
 
@@ -483,7 +485,6 @@ with col_chat:
     elif "OPENAI_API_KEY" not in st.secrets:
         st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
-        # Histórico
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
                 with st.chat_message("user"):
@@ -511,35 +512,6 @@ with col_chat:
                     st.markdown(resposta)
 
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
-
-
-# -------- BOTÃO FLUTUANTE DE IMPRESSÃO (sempre visível após diagnóstico) --------
-if st.session_state.diagnostico_perfil_texto is not None:
-    components.html(
-        """
-        <button
-            onclick="window.parent.print()"
-            style="
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                z-index: 9999;
-                background-color: #FFC728;
-                border: none;
-                padding: 0.8rem 1.6rem;
-                border-radius: 999px;
-                font-weight: 600;
-                cursor: pointer;
-                font-size: 0.95rem;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-            "
-        >
-            Imprimir / salvar diagnóstico
-        </button>
-        """,
-        height=0,
-    )
-
 
 st.markdown(
     """
