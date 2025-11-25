@@ -1,37 +1,60 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import openai
 import math
-import os
-from io import BytesIO
-import streamlit.components.v1 as components  # <--- ADD
+import openai
+import streamlit.components.v1 as components  # <-- NOVO
 
 
 # -------------------
-# CONFIGURAÇÕES GERAIS
+# CONFIG GERAIS
 # -------------------
-
 st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="wide")
 
-# CSS geral de UX (sem sidebar)
 st.markdown(
     """
 <style>
-/* Remove completamente a barra lateral */
+/* Remove sidebar */
 [data-testid="stSidebar"] {
     display: none !important;
 }
 
-/* Ajuste de largura do conteúdo principal */
+/* Largura do conteúdo principal */
 .block-container {
     padding-top: 1.5rem !important;
     max-width: 1200px !important;
 }
 
-/* Pequeno espaçamento entre sliders */
+/* Espaçamento entre sliders */
 div[data-testid="stSlider"] {
     margin-bottom: 0.7rem !important;
+}
+
+/* Some menu do Streamlit */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
+
+/* Remove "Manage app" */
+.stAppDeployButton {display: none !important;}
+button[title="Manage app"] {display: none !important;}
+[data-testid="stStatusWidget"] {display: none !important;}
+
+/* Oculta botão flutuante extra */
+button[aria-label="Manage app"],
+div[data-testid="manage-app-button"],
+div[data-testid="ManageAppButton"],
+div[style*="position: fixed"][style*="bottom"][style*="right"] {
+    display: none !important;
+}
+
+/* Caixa de alerta nas cores Publix */
+div[data-testid="stAlert"] {
+    background-color: #FFC728 !important;
+    border-left: 6px solid #E0A600 !important;
+    border-radius: 8px !important;
+}
+div[data-testid="stAlert"] * {
+    color: #000000 !important;
 }
 </style>
 """,
@@ -60,98 +83,21 @@ Radar Publix — inteligência para evoluir capacidades.
     unsafe_allow_html=True,
 )
 
+
 # -------------------
 # API KEY
 # -------------------
-
 if "OPENAI_API_KEY" in st.secrets:
     openai.api_key = st.secrets["OPENAI_API_KEY"]
 else:
     st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
 
-# -------------------
-# CSS extra
-# -------------------
-
-# BLOCO 1 – esconder menus
-st.markdown(
-    """
-<style>
-#MainMenu {visibility: hidden;}
-header {visibility: hidden;}
-footer {visibility: hidden;}
-
-/* Remove "Manage app" */
-.stAppDeployButton {display: none !important;}
-button[title="Manage app"] {display: none !important;}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-# BLOCO 2 – alert em amarelo Publix
-st.markdown(
-    """
-<style>
-/* Caixa de aviso (alert) nas cores Publix */
-div[data-testid="stAlert"] {
-    background-color: #FFC728 !important;  /* amarelo Publix */
-    border-left: 6px solid #E0A600 !important;
-    border-radius: 8px !important;
-}
-
-/* Força texto preto dentro do alerta */
-div[data-testid="stAlert"] * {
-    color: #000000 !important;    /* texto preto */
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-# BLOCO 3 – extras (scroll box e remoção de botões)
-st.markdown(
-    """
-<style>
-/* Remove barra inferior "Manage app" extra */
-.stAppDeployButton {display: none !important;}
-button[title="Manage app"] {display: none !important;}
-
-/* Remove barra preta no canto inferior */
-[data-testid="stStatusWidget"] {display: none !important;}
-
-/* Scroll box (se precisar) */
-.scroll-box {
-    max-height: 450px;
-    overflow-y: auto;
-    padding-right: 10px;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 10px;
-}
-
-/* Oculta botão flutuante */
-button[aria-label="Manage app"],
-button[title="Manage app"],
-div[data-testid="manage-app-button"],
-div[data-testid="ManageAppButton"] {
-    display: none !important;
-}
-
-/* Esconde qualquer container fixo no canto inferior direito */
-div[style*="position: fixed"][style*="bottom"][style*="right"] {
-    display: none !important;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
 
 # -------------------
-# QUESTÕES DO DIAGNÓSTICO
+# QUESTÕES
 # -------------------
-
 QUESTOES = [
+    # (mantive exatamente como você enviou)
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidad...xternos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.3", "texto": " Realiza-se a gestão de stakeholders (partes interessadas) que atuam na formulação/revisão das estratégias da organização?", "dimensao": "Agenda Estratégica"},
@@ -227,12 +173,13 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
-# Médias da base nacional por dimensão
-OBSERVATORIO_MEANS = {
+# médias nacionais por dimensão (o que antes vinha do CSV)
+observatorio_means = {
     "Agenda Estratégica": 1.92,
     "Estrutura da Implementação": 1.53,
     "Monitoramento e Avaliação": 1.47,
 }
+
 
 BASE_SINTETICA = """
 Base nacional do Observatório de Maturidade – resumo sintético
@@ -246,13 +193,11 @@ Base nacional do Observatório de Maturidade – resumo sintético
 2. Maturidade geral
 - Média nacional de maturidade: 1,64 (escala 0 a 3).
 - Cerca de 22,45% dos órgãos estão no nível 3.
-- Interpretação macro: a administração pública brasileira está, em geral, entre níveis iniciais e intermediários de maturidade.
 
 3. Médias por dimensão
 - Agenda Estratégica: 1,92
 - Estrutura da Implementação: 1,53
 - Monitoramento e Avaliação: 1,47
-Leitura: a Estratégia é relativamente mais consolidada; a Implementação é mediana; Monitoramento e Avaliação aparece como o maior gargalo estrutural do país.
 
 4. Médias por esfera
 - Organismos Internacionais: 1,93
@@ -260,7 +205,6 @@ Leitura: a Estratégia é relativamente mais consolidada; a Implementação é m
 - Federal: 1,76
 - Estadual: 1,41
 - Municipal: 1,35
-Leitura: organizações federais e privadas são significativamente mais maduras que estaduais e municipais.
 
 5. Médias por poder
 - Organismos Internacionais: 1,93
@@ -268,17 +212,14 @@ Leitura: organizações federais e privadas são significativamente mais maduras
 - Privado: 1,82
 - Legislativo: 1,73
 - Executivo: 1,57
-Insight crítico: o Executivo é o mais frequente na amostra, mas apresenta a menor maturidade média entre os poderes.
 
 6. Padrão nacional por dimensão
 - Estratégia tende a ser o ponto mais forte dos órgãos públicos.
 - Implementação expõe fragilidades em competências, processos e arranjos institucionais.
-- Monitoramento e Avaliação costuma ser o principal ponto crítico e a dimensão menos institucionalizada.
-
-Use sempre essa lógica ao comparar o diagnóstico do órgão do usuário com a base nacional.
+- Monitoramento e Avaliação costuma ser o principal ponto crítico.
 """
 
-# Médias da base por Poder
+
 BASE_MEDIA_POR_PODER = {
     "organismo internacional": 1.93,
     "empresa pública": 1.87,
@@ -288,7 +229,6 @@ BASE_MEDIA_POR_PODER = {
     "confederação": 1.57,
 }
 
-# Médias da base por Esfera
 BASE_MEDIA_POR_ESFERA = {
     "federal": 1.76,
     "estadual": 1.41,
@@ -297,31 +237,26 @@ BASE_MEDIA_POR_ESFERA = {
     "organismo internacional": 1.93,
 }
 
+
 def _normalizar_label(texto: str) -> str | None:
     if not texto:
         return None
     t = texto.strip().lower()
-
     substituicoes = {
         "poder executivo": "executivo",
         "poder legislativo": "legislativo",
         "poder judiciário": "judiciário",
         "judiciario": "judiciário",
-        "judiciário": "judiciário",
         "org. internacional": "organismo internacional",
         "organismo int.": "organismo internacional",
     }
-    t = substituicoes.get(t, t)
-    return t
+    return substituicoes.get(t, t)
 
-# Alias de dimensão
+
 DIM_ALIAS = {
     "Alinhamento da Estrutura implementadora": "Estrutura da Implementação",
 }
 
-# -------------------
-# FUNÇÕES AUXILIARES
-# -------------------
 
 def calcular_medias_por_dimensao(respostas_dict):
     df = pd.DataFrame(QUESTOES)
@@ -336,24 +271,15 @@ def calcular_medias_por_dimensao(respostas_dict):
     medias = df.groupby("dim_key")["nota"].mean().round(2).to_dict()
     return medias
 
-def montar_perfil_texto(
-    instituicao,
-    poder,
-    esfera,
-    estado,
-    respostas_dict,
-    medias_dimensao,
-):
-    linhas = []
 
-    # Identificação
+def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medias_dimensao):
+    linhas = []
     linhas.append(f"Instituição avaliada: {instituicao or 'Não informada'}")
     linhas.append(f"Poder: {poder or 'Não informado'}")
     linhas.append(f"Esfera: {esfera or 'Não informada'}")
     linhas.append(f"Estado: {estado or 'Não informado'}")
     linhas.append("")
 
-    # Comparação geral por poder/esfera
     poder_norm = _normalizar_label(poder)
     esfera_norm = _normalizar_label(esfera)
 
@@ -362,21 +288,18 @@ def montar_perfil_texto(
 
     if media_poder_base is not None:
         linhas.append(
-            f"No Observatório de Maturidade, a média geral de maturidade para o poder "
-            f"'{poder}' é {media_poder_base:.2f}."
+            f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}."
         )
     if media_esfera_base is not None:
         linhas.append(
-            f"Na esfera '{esfera}', a média geral de maturidade observada na base é "
-            f"{media_esfera_base:.2f}."
+            f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}."
         )
     if media_poder_base is not None or media_esfera_base is not None:
         linhas.append("")
 
-    # Resumo por dimensão
     linhas.append("Resumo das notas por dimensão (escala 0 a 3):")
     for dim, media_orgao in medias_dimensao.items():
-        media_base = OBSERVATORIO_MEANS.get(dim)
+        media_base = observatorio_means.get(dim)
         if media_base is not None and not pd.isna(media_base):
             diff = round(media_orgao - media_base, 2)
             if diff > 0.1:
@@ -401,35 +324,20 @@ def montar_perfil_texto(
 
     return "\n".join(linhas)
 
+
 def chamar_ia(perfil_texto, user_message, chat_history):
     system_prompt = """
 Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
 Sua função é analisar o diagnóstico de um órgão público e compará-lo com a base nacional do Observatório,
 indicando pontos fortes, fragilidades e caminhos práticos de evolução.
-
-Regras:
-- Use SEMPRE os dados do diagnóstico do órgão e da base nacional fornecida.
-- Compare de forma explícita: diga quando o órgão está acima, abaixo ou próximo da média da base.
-- Considere, sempre que possível, o Poder, a Esfera e o Estado informados.
-- Ajude o usuário a priorizar: indique o que é mais crítico atacar primeiro.
-- Traga sugestões realistas para órgãos públicos brasileiros (restrições de tempo, orçamento, burocracia).
-- Evite jargão excessivo; use linguagem clara e orientada à ação.
 """
-
     messages = [
         {"role": "system", "content": system_prompt},
-        {
-            "role": "system",
-            "content": "A seguir estão os principais achados da base nacional do Observatório de Maturidade:",
-        },
+        {"role": "system", "content": "Principais achados da base nacional do Observatório de Maturidade:"},
         {"role": "system", "content": BASE_SINTETICA},
-        {
-            "role": "system",
-            "content": "A seguir está o diagnóstico estruturado da organização do usuário:",
-        },
+        {"role": "system", "content": "Diagnóstico estruturado da organização do usuário:"},
         {"role": "system", "content": perfil_texto},
     ]
-
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
@@ -444,10 +352,10 @@ Regras:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
-# -------------------
-# STATE INICIAL
-# -------------------
 
+# -------------------
+# STATE
+# -------------------
 if "diagnostico_respostas" not in st.session_state:
     st.session_state.diagnostico_respostas = None
 
@@ -457,21 +365,18 @@ if "diagnostico_perfil_texto" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# dicionário central de respostas (id -> nota)
 if "respostas_dict" not in st.session_state:
     st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
 
-# estado da página do questionário
 if "pagina_quest" not in st.session_state:
     st.session_state.pagina_quest = 1
 
-# -------------------
-# LAYOUT PRINCIPAL
-# -------------------
 
+# -------------------
+# LAYOUT
+# -------------------
 col_form, col_chat = st.columns([2, 3])
 
-# -------- COLUNA ESQUERDA: FORMULÁRIO --------
 with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
@@ -487,11 +392,8 @@ with col_form:
     inicio = (pagina - 1) * QUESTOES_POR_PAG
     fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
 
-    st.write(
-        f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):"
-    )
+    st.write(f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):")
 
-    # mostra apenas o bloco atual de questões
     for q in QUESTOES[inicio:fim]:
         atual = st.session_state.respostas_dict.get(q["id"], 1)
         novo_valor = st.slider(
@@ -505,7 +407,6 @@ with col_form:
         )
         st.session_state.respostas_dict[q["id"]] = novo_valor
 
-    # navegação entre blocos
     col1, col2, col3 = st.columns([1, 1, 2])
 
     def ir_anterior():
@@ -517,28 +418,18 @@ with col_form:
             st.session_state.pagina_quest += 1
 
     with col1:
-        st.button(
-            "Anterior",
-            key="btn_anterior",
-            disabled=(pagina == 1),
-            on_click=ir_anterior,
-        )
+        st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
 
     with col2:
-        st.button(
-            "Próximo",
-            key="btn_proximo",
-            disabled=(pagina == total_paginas),
-            on_click=ir_proximo,
-        )
+        st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
 
     with col3:
         gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
 
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
-
         st.session_state.diagnostico_respostas = respostas
+
         medias_dim = calcular_medias_por_dimensao(respostas)
         perfil_txt = montar_perfil_texto(
             instituicao,
@@ -550,51 +441,49 @@ with col_form:
         )
         st.session_state.diagnostico_perfil_texto = perfil_txt
 
-        st.success(
-            "Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado."
-        )
+        st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado.")
 
         st.write("### Resumo do diagnóstico (por dimensão)")
         for dim, media in medias_dim.items():
-            base = OBSERVATORIO_MEANS.get(dim)
+            base = observatorio_means.get(dim)
             if base is not None:
                 st.write(f"- **{dim}**: {media:.2f} (base: {base:.2f})")
             else:
                 st.write(f"- **{dim}**: {media:.2f}")
 
-        # Botão de imprimir/salvar PDF (via navegador)
-                # Botão para imprimir / salvar o diagnóstico em PDF (via navegador)
+        # BOTÃO DE IMPRIMIR (usa o print do navegador)
         components.html(
-    """
-    <iframe srcdoc="
-        <html>
-        <body>
-            <button
-                onclick='window.print()'
-                style=\"
-                    background-color: #FFC728;
-                    border: none;
-                    padding: 0.6rem 1.6rem;
-                    border-radius: 999px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    font-size: 0.95rem;
-                \"
-            >
-                Imprimir / salvar diagnóstico em PDF
-            </button>
-        </body>
-        </html>
-    "
-    style="width: 100%; height: 80px; border: none;"
-    sandbox="allow-scripts allow-modals allow-same-origin">
-    </iframe>
-    """,
-    height=100,
-)
+            """
+            <div style="text-align: right; margin-top: 1rem;">
+                <button
+                    onclick="window.print()"
+                    style="
+                        background-color: #FFC728;
+                        border: none;
+                        padding: 0.6rem 1.4rem;
+                        border-radius: 999px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        font-size: 0.95rem;
+                    "
+                >
+                    Imprimir / salvar diagnóstico em PDF
+                </button>
+            </div>
+            """,
+            height=80,
+        )
+
+        # Debug
+        df_debug = pd.DataFrame(QUESTOES)
+        df_debug["nota"] = df_debug["id"].map(respostas)
+        with st.expander("Ver respostas detalhadas (debug)"):
+            st.dataframe(df_debug[["id", "dimensao", "nota"]])
+
+        with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
+            st.text(st.session_state.diagnostico_perfil_texto)
 
 
-# -------- COLUNA DIREITA: CHAT --------
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
 
@@ -603,7 +492,6 @@ with col_chat:
     elif "OPENAI_API_KEY" not in st.secrets:
         st.warning("API Key não encontrada nos secrets do Streamlit.")
     else:
-        # histórico
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
                 with st.chat_message("user"):
@@ -612,9 +500,7 @@ with col_chat:
                 with st.chat_message("assistant"):
                     st.markdown(msg["content"])
 
-        prompt = st.chat_input(
-            "Faça uma pergunta para a IA sobre o diagnóstico da sua organização..."
-        )
+        prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
 
         if prompt:
             user_msg = {"role": "user", "content": prompt}
@@ -632,14 +518,11 @@ with col_chat:
                     )
                     st.markdown(resposta)
 
-            st.session_state.chat_history.append(
-                {"role": "assistant", "content": resposta}
-            )
+            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
 
 st.markdown(
     """
 <hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
-
 <div style="font-size: 0.85rem; color: #777777; text-align: right;">
     Desenvolvido pelo <span style="font-weight: 600; color: #FFC728;">
     Instituto Publix
