@@ -565,27 +565,34 @@ with col_form:
         # Botão de imprimir/salvar PDF (via navegador)
                 # Botão para imprimir / salvar o diagnóstico em PDF (via navegador)
         components.html(
-            """
-            <div style="text-align: right; margin-top: 1rem;">
-                <button
-                    onclick="window.print()"
-                    style="
-                        background-color: #FFC728;
-                        border: none;
-                        padding: 0.6rem 1.6rem;
-                        border-radius: 999px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        font-size: 0.95rem;
-                    "
-                >
-                    Imprimir / salvar diagnóstico em PDF
-                </button>
-            </div>
-            """,
-            height=80,
-            scrolling=False,
-        )
+    """
+    <iframe srcdoc="
+        <html>
+        <body>
+            <button
+                onclick='window.print()'
+                style=\"
+                    background-color: #FFC728;
+                    border: none;
+                    padding: 0.6rem 1.6rem;
+                    border-radius: 999px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                \"
+            >
+                Imprimir / salvar diagnóstico em PDF
+            </button>
+        </body>
+        </html>
+    "
+    style="width: 100%; height: 80px; border: none;"
+    sandbox="allow-scripts allow-modals allow-same-origin">
+    </iframe>
+    """,
+    height=100,
+)
+
 
 # -------- COLUNA DIREITA: CHAT --------
 with col_chat:
