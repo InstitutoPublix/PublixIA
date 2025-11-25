@@ -474,14 +474,7 @@ with col_form:
     height=80,
 )
 
-        # Debug
-        df_debug = pd.DataFrame(QUESTOES)
-        df_debug["nota"] = df_debug["id"].map(respostas)
-        with st.expander("Ver respostas detalhadas (debug)"):
-            st.dataframe(df_debug[["id", "dimensao", "nota"]])
 
-        with st.expander("Ver diagnóstico completo (texto que vai para a IA)"):
-            st.text(st.session_state.diagnostico_perfil_texto)
 
 
 with col_chat:
