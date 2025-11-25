@@ -29,23 +29,30 @@ div[data-testid="stSlider"] {
     margin-bottom: 0.7rem !important;
 }
 
+/* Chat mais estreito e alinhado com o texto */
+div[data-testid="stChatMessage"] {
+    max-width: 700px;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+div[data-testid="stChatInput"] {
+    max-width: 700px;
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
 /* Some menu do Streamlit */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Remove "Manage app" */
+/* Remove "Manage app" padrão */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
-
-/* Oculta botão flutuante extra */
-button[aria-label="Manage app"],
-div[data-testid="manage-app-button"],
-div[data-testid="ManageAppButton"],
-div[style*="position: fixed"][style*="bottom"][style*="right"] {
-    display: none !important;
-}
+button[aria-label="Manage app"] {display: none !important;}
+div[data-testid="manage-app-button"] {display: none !important;}
+div[data-testid="ManageAppButton"] {display: none !important;}
 
 /* Caixa de alerta nas cores Publix */
 div[data-testid="stAlert"] {
@@ -457,29 +464,6 @@ with col_form:
             else:
                 st.write(f"- **{dim}**: {media:.2f}")
 
-        # BOTÃO DE IMPRIMIR / PDF – sempre disponível após o diagnóstico
-        components.html(
-            """
-            <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
-                <button
-                    onclick="window.parent.print()"
-                    style="
-                        background-color: #FFC728;
-                        border: none;
-                        padding: 0.7rem 1.6rem;
-                        border-radius: 999px;
-                        font-weight: 600;
-                        cursor: pointer;
-                        font-size: 0.95rem;
-                    "
-                >
-                    Imprimir / salvar diagnóstico em PDF
-                </button>
-            </div>
-            """,
-            height=90,
-        )
-
         # Debug opcional
         df_debug = pd.DataFrame(QUESTOES)
         df_debug["nota"] = df_debug["id"].map(st.session_state.diagnostico_respostas)
@@ -527,6 +511,34 @@ with col_chat:
                     st.markdown(resposta)
 
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+
+
+# -------- BOTÃO FLUTUANTE DE IMPRESSÃO (sempre visível após diagnóstico) --------
+if st.session_state.diagnostico_perfil_texto is not None:
+    components.html(
+        """
+        <button
+            onclick="window.parent.print()"
+            style="
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 9999;
+                background-color: #FFC728;
+                border: none;
+                padding: 0.8rem 1.6rem;
+                border-radius: 999px;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 0.95rem;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+            "
+        >
+            Imprimir / salvar diagnóstico
+        </button>
+        """,
+        height=0,
+    )
 
 
 st.markdown(
