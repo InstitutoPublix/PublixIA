@@ -259,6 +259,51 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
+BASE_SINTETICA = """
+Base nacional do Observatório de Maturidade – resumo sintético
+
+1. Perfil da base
+- 259 respondentes, provenientes de 153 organizações.
+- Esferas: 54,8% Federal; 31,6% Estadual; 8,1% Municipal; restante entre privado, 3º setor e organismos internacionais.
+- Poderes: Executivo (144), Legislativo (36), Judiciário (29), Empresas Públicas (24), Privado (11).
+- Escolaridade predominante: Especialização (123), Graduação (66), Pós-graduação (36), MBA (26).
+
+2. Maturidade geral
+- Média nacional de maturidade: 1,64 (escala 0 a 3).
+- Cerca de 22,45% dos órgãos estão no nível 3.
+- Interpretação macro: a administração pública brasileira está, em geral, entre níveis iniciais e intermediários de maturidade.
+
+3. Médias por dimensão
+- Agenda Estratégica: 1,92
+- Estrutura da Implementação: 1,53
+- Monitoramento e Avaliação: 1,47
+Leitura: a Estratégia é relativamente mais consolidada; a Implementação é mediana; Monitoramento e Avaliação aparece como o maior gargalo estrutural do país.
+
+4. Médias por esfera
+- Organismos Internacionais: 1,93
+- Privado: 1,81
+- Federal: 1,76
+- Estadual: 1,41
+- Municipal: 1,35
+Leitura: organizações federais e privadas são significativamente mais maduras que estaduais e municipais.
+
+5. Médias por poder
+- Organismos Internacionais: 1,93
+- Empresas Públicas: 1,87
+- Privado: 1,82
+- Legislativo: 1,73
+- Executivo: 1,57
+Insight crítico: o Executivo é o mais frequente na amostra, mas apresenta a menor maturidade média entre os poderes.
+
+6. Padrão nacional por dimensão
+- Estratégia tende a ser o ponto mais forte dos órgãos públicos.
+- Implementação expõe fragilidades em competências, processos e arranjos institucionais.
+- Monitoramento e Avaliação costuma ser o principal ponto crítico e a dimensão menos institucionalizada.
+
+Use sempre essa lógica ao comparar o diagnóstico do órgão do usuário com a base nacional.
+"""
+
+
 # Médias da base por Poder (retiradas do BI)
 BASE_MEDIA_POR_PODER = {
     "organismo internacional": 1.93,
@@ -394,53 +439,48 @@ def montar_perfil_texto(instituicao, poder, esfera, estado,
 
 
 def chamar_ia(perfil_texto, user_message, chat_history):
-    """
-    Chama o modelo de IA usando o diagnóstico como contexto
-    e o histórico de conversa salvo em st.session_state.chat_history.
-    """
     system_prompt = """
 Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
-Sua função é analisar o diagnóstico de um órgão público e sugerir caminhos práticos
-para evoluir a maturidade nas diferentes dimensões (governança, processos, pessoas,
-dados, tecnologia, etc.).
+Sua função é analisar o diagnóstico de um órgão público e compará-lo com a base nacional do Observatório,
+indicando pontos fortes, fragilidades e caminhos práticos de evolução.
 
 Regras:
-- Use SEMPRE os números do diagnóstico: notas por dimensão, diferenças em relação à base,
-  poder, esfera e demais dados fornecidos no contexto.
-- Não seja genérico: cite explicitamente onde a organização está acima, igual ou abaixo da base.
-- Comece resumindo brevemente os principais pontos fortes e fracos.
-- Ajude o usuário a priorizar: indique por onde começar e o que é mais crítico.
-- Traga sugestões realistas para o contexto de órgãos públicos brasileiros
-  (considerando restrições de tempo, orçamento e burocracia).
-- Se alguma informação não estiver disponível no contexto, diga isso claramente em vez de inventar.
-- Linguagem clara, direta e prática.
+- Use SEMPRE os dados do diagnóstico do órgão e da base nacional fornecida.
+- Compare de forma explícita: diga quando o órgão está acima, abaixo ou próximo da média da base.
+- Considere, sempre que possível, o Poder, a Esfera e o Estado informados.
+- Ajude o usuário a priorizar: indique o que é mais crítico atacar primeiro.
+- Traga sugestões realistas para órgãos públicos brasileiros (restrições de tempo, orçamento, burocracia).
+- Evite jargão excessivo; use linguagem clara e orientada à ação.
 """
 
-    # Monta a lista de mensagens para a API
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "system", "content": "A seguir está o diagnóstico estruturado da organização:"},
+        {
+            "role": "system",
+            "content": "A seguir estão os principais achados da base nacional do Observatório de Maturidade:"
+        },
+        {"role": "system", "content": BASE_SINTETICA},
+        {
+            "role": "system",
+            "content": "A seguir está o diagnóstico estruturado da organização do usuário:"
+        },
         {"role": "system", "content": perfil_texto},
     ]
 
-    # Garante que só entram user/assistant no histórico
-    for m in chat_history:
-        if m.get("role") in ("user", "assistant"):
-            messages.append(m)
-
-    # Mensagem atual do usuário
+    messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=messages,
-            temperature=0.25,
+            temperature=0.3,
         )
         return response.choices[0].message["content"]
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
+
 
 
 
