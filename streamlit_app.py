@@ -66,7 +66,7 @@ st.markdown(
 <h1 style='margin-bottom: -10px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
-A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong>  é a camada inteligente do Observatório de Governança para Resultados, criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
+A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong>  é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
