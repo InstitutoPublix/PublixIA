@@ -457,11 +457,13 @@ with col_form:
 
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
-
+    
     if st.session_state.diagnostico_perfil_texto is None:
         st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
-    elif "OPENAI_API_KEY" not in st.secrets:
-        st.warning("API Key não encontrada nos secrets do Streamlit.")
+
+    elif openai_api_key is None:
+        st.warning("API Key não encontrada. Verifique a variável de ambiente OPENAI_API_KEY no Render.")
+
     else:
         for msg in st.session_state.chat_history:
             if msg["role"] == "user":
@@ -470,6 +472,8 @@ with col_chat:
             elif msg["role"] == "assistant":
                 with st.chat_message("assistant"):
                     st.markdown(msg["content"])
+
+    
 
         prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
 
