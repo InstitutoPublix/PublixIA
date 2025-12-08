@@ -3,6 +3,7 @@ import pandas as pd
 import math
 import openai
 import streamlit.components.v1 as components  # <-- NOVO
+import os
 
 
 # -------------------
@@ -87,15 +88,14 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 # API KEY
 # -------------------
+# Tenta pegar do secrets.toml local ou do Render
 try:
-    # Tenta pegar do secrets.toml (ambiente local)
     openai_api_key = st.secrets["OPENAI_API_KEY"]
-except FileNotFoundError:
-    # Se não existir secrets.toml (caso do Render), pega da variável de ambiente
+except Exception:
     openai_api_key = os.getenv("OPENAI_API_KEY")
 
 if not openai_api_key:
-    st.error("OPENAI_API_KEY não encontrada. Configure em .streamlit/secrets.toml ou como variável de ambiente.")
+    st.error("OPENAI_API_KEY não encontrada. Configure em secrets.toml ou como variável de ambiente no Render.")
     st.stop()
 # -------------------
 # QUESTÕES
