@@ -87,12 +87,16 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 # API KEY
 # -------------------
-if "OPENAI_API_KEY" in st.secrets:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-else:
-    st.error("A API Key não foi encontrada em st.secrets. Configure OPENAI_API_KEY antes de usar o chat.")
+try:
+    # Tenta pegar do secrets.toml (ambiente local)
+    openai_api_key = st.secrets["OPENAI_API_KEY"]
+except FileNotFoundError:
+    # Se não existir secrets.toml (caso do Render), pega da variável de ambiente
+    openai_api_key = os.getenv("OPENAI_API_KEY")
 
-
+if not openai_api_key:
+    st.error("OPENAI_API_KEY não encontrada. Configure em .streamlit/secrets.toml ou como variável de ambiente.")
+    st.stop()
 # -------------------
 # QUESTÕES
 # -------------------
