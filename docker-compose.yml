@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: observatorio_app
+    restart: always
+    expose:
+      - "8501"
+    env_file:
+      - .env
+    networks:
+      - webnet
+
+  nginx:
+    image: nginx:latest
+    container_name: observatorio_nginx
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      # depois podemos abrir 443 pra HTTPS
+      # - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - webnet
+
+networks:
+  webnet:
+    driver: bridge
