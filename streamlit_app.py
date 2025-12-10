@@ -328,7 +328,7 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     return "\n".join(linhas)
 
 
-def chamar_ia(perfil_texto, user_message, chat_history):
+def chamar_ia(perfil_texto, chat_history):
     system_prompt = """
 Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
 Sua função é analisar o diagnóstico de um órgão público e compará-lo com a base nacional do Observatório,
@@ -341,8 +341,9 @@ indicando pontos fortes, fragilidades e caminhos práticos de evolução.
         {"role": "system", "content": "Diagnóstico estruturado da organização do usuário:"},
         {"role": "system", "content": perfil_texto},
     ]
+
+    # histórico completo (user + assistant)
     messages.extend(chat_history)
-    messages.append({"role": "user", "content": user_message})
 
     try:
         response = openai.ChatCompletion.create(
@@ -354,6 +355,7 @@ indicando pontos fortes, fragilidades e caminhos práticos de evolução.
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
+
 
 
 # -------------------
@@ -479,21 +481,26 @@ with col_chat:
 
         if prompt:
             user_msg = {"role": "user", "content": prompt}
-            st.session_state.chat_history.append(user_msg)
 
+            # 1) mostra a mensagem do usuário
             with st.chat_message("user"):
                 st.markdown(prompt)
 
+            # 2) adiciona ao histórico
+            st.session_state.chat_history.append(user_msg)
+
+            # 3) chama a IA usando o histórico completo
             with st.chat_message("assistant"):
                 with st.spinner("Gerando resposta da IA..."):
                     resposta = chamar_ia(
                         st.session_state.diagnostico_perfil_texto,
-                        prompt,
                         st.session_state.chat_history,
                     )
                     st.markdown(resposta)
 
+            # 4) salva resposta no histórico
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+
 
 
 # -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
