@@ -90,16 +90,23 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 
 import os
+from pathlib import Path
 
 # 1) tenta primeiro pelas variáveis de ambiente (Render)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# 2) se não achar (por exemplo, rodando localmente), tenta o st.secrets
+# 2) se não achar, tenta st.secrets *somente se existir um secrets.toml*
 if not openai_api_key:
-    try:
-        openai_api_key = st.secrets["OPENAI_API_KEY"]
-    except Exception:
-        openai_api_key = None
+    possible_paths = [
+        Path(".streamlit/secrets.toml"),
+        Path("/opt/render/.streamlit/secrets.toml"),
+        Path("/opt/render/project/src/.streamlit/secrets.toml"),
+    ]
+    if any(p.exists() for p in possible_paths):
+        try:
+            openai_api_key = st.secrets["OPENAI_API_KEY"]
+        except Exception:
+            openai_api_key = None
 
 # 3) se mesmo assim não tiver, mostra erro
 if not openai_api_key:
@@ -108,7 +115,6 @@ if not openai_api_key:
         "ou em .streamlit/secrets.toml."
     )
     st.stop()
-
 # -------------------
 # QUESTÕES
 # -------------------
