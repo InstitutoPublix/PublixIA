@@ -394,9 +394,45 @@ with col_form:
     st.subheader("1. Preencha o diagnóstico da sua organização")
 
     instituicao = st.text_input("Instituição", "")
-    poder = st.text_input("Poder (ex.: Executivo, Judiciário, Legislativo)", "")
-    esfera = st.text_input("Esfera (ex.: Federal, Estadual, Municipal)", "")
-    estado = st.text_input("Estado (UF)", "")
+
+    poder = st.selectbox(
+    "Poder",
+    [
+        "",
+        "Executivo",
+        "Legislativo",
+        "Judiciário",
+        "Ministério Público",
+        "Tribunal de Contas",
+        "Empresa Pública",
+        "Privado",
+        "Organismo Internacional",
+    ],
+)
+
+    esfera = st.selectbox(
+    "Esfera",
+    [
+        "",
+        "Federal",
+        "Estadual",
+        "Municipal",
+        "Distrital",
+        "Privado",
+        "Organismo Internacional",
+    ],
+)
+
+    estado = st.selectbox(
+    "Estado (UF)",
+    [
+        "",
+        "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+        "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+        "RO", "RR", "RS", "SC", "SE", "SP", "TO"
+    ],
+)
+
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
