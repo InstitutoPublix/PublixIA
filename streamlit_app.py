@@ -88,15 +88,27 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 # API KEY
 # -------------------
-# Tenta pegar do secrets.toml local ou do Render
-try:
-    openai_api_key = st.secrets["OPENAI_API_KEY"]
-except Exception:
-    openai_api_key = os.getenv("OPENAI_API_KEY")
 
+import os
+
+# 1) tenta primeiro pelas variáveis de ambiente (Render)
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+# 2) se não achar (por exemplo, rodando localmente), tenta o st.secrets
 if not openai_api_key:
-    st.error("OPENAI_API_KEY não encontrada. Configure em secrets.toml ou como variável de ambiente no Render.")
+    try:
+        openai_api_key = st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        openai_api_key = None
+
+# 3) se mesmo assim não tiver, mostra erro
+if not openai_api_key:
+    st.error(
+        "OPENAI_API_KEY não encontrada. Configure como variável de ambiente "
+        "ou em .streamlit/secrets.toml."
+    )
     st.stop()
+
 # -------------------
 # QUESTÕES
 # -------------------
