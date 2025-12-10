@@ -431,6 +431,13 @@ with col_form:
         "RO", "RR", "RS", "SC", "SE", "SP", "TO"
     ],
 )
+    
+    st.markdown("### Autorização de uso das informações")
+
+    aceite = st.checkbox(
+    "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
+    value=False
+)
 
 
     QUESTOES_POR_PAG = 10
