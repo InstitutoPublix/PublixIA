@@ -417,7 +417,6 @@ with col_form:
         "Federal",
         "Estadual",
         "Municipal",
-        "Distrital",
         "Privado",
         "Organismo Internacional",
     ],
