@@ -90,31 +90,21 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 
 import os
-from pathlib import Path
 
-# 1) tenta primeiro pelas variáveis de ambiente (Render)
+# tenta pegar primeiro das variáveis de ambiente (Render)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# 2) se não achar, tenta st.secrets *somente se existir um secrets.toml*
-if not openai_api_key:
-    possible_paths = [
-        Path(".streamlit/secrets.toml"),
-        Path("/opt/render/.streamlit/secrets.toml"),
-        Path("/opt/render/project/src/.streamlit/secrets.toml"),
-    ]
-    if any(p.exists() for p in possible_paths):
-        try:
-            openai_api_key = st.secrets["OPENAI_API_KEY"]
-        except Exception:
-            openai_api_key = None
-
-# 3) se mesmo assim não tiver, mostra erro
+# se não encontrar, mostra erro amigável e para o app
 if not openai_api_key:
     st.error(
-        "OPENAI_API_KEY não encontrada. Configure como variável de ambiente "
-        "ou em .streamlit/secrets.toml."
+        "OPENAI_API_KEY não encontrada. "
+        "No Render, configure em Environment Variables com o nome OPENAI_API_KEY."
     )
     st.stop()
+
+# se quiser, pode setar explicitamente para a lib openai
+openai.api_key = openai_api_key
+
 # -------------------
 # QUESTÕES
 # -------------------
