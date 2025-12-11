@@ -327,13 +327,24 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
         else:
             linhas.append(f"- {dim}: {media_orgao:.2f} (sem comparativo na base)")
 
-    linhas.append("")
-    linhas.append("Notas detalhadas por questão:")
+        linhas.append("")
+    linhas.append("Notas detalhadas por dimensão e questão:")
+
+    dimensao_atual = None
     for q in QUESTOES:
+        dim = q["dimensao"]
+
+        # sempre que a dimensão mudar, coloca um subtítulo
+        if dim != dimensao_atual:
+            linhas.append("")
+            linhas.append(f"=== {dim} ===")
+            dimensao_atual = dim
+
         nota = respostas_dict.get(q["id"])
-        linhas.append(f"- {q['id']} | {q['dimensao']} | '{q['texto']}' -> nota {nota}")
+        linhas.append(f"- {q['id']} | '{q['texto']}' -> nota {nota}")
 
     return "\n".join(linhas)
+
 
 
 def chamar_ia(perfil_texto, chat_history):
@@ -403,10 +414,7 @@ with col_form:
         "Legislativo",
         "Judiciário",
         "Ministério Público",
-        "Tribunal de Contas",
-        "Empresa Pública",
-        "Privado",
-        "Organismo Internacional",
+        "Outro (organismo internacional etc.)",
     ],
 )
 
@@ -417,8 +425,8 @@ with col_form:
         "Federal",
         "Estadual",
         "Municipal",
-        "Privado",
-        "Organismo Internacional",
+        "Distrital",
+        "Não se aplica",
     ],
 )
 
@@ -439,6 +447,11 @@ with col_form:
     value=False
 )
 
+    st.markdown(
+    "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
+    unsafe_allow_html=True
+)
+
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
@@ -457,7 +470,7 @@ with col_form:
             max_value=3,
             value=atual,
             step=1,
-            help="0 = Inexistente | 3 = Bem estruturado",
+            help="0 = Inexistente | 3 = Avançado",
             key=f"slider_{q['id']}",
         )
         st.session_state.respostas_dict[q["id"]] = novo_valor
