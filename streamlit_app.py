@@ -331,19 +331,46 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     linhas.append("Notas detalhadas por dimensão e questão:")
 
     dimensao_atual = None
-    for q in QUESTOES:
-        dim = q["dimensao"]
+    ultima_dim = None
 
-        # sempre que a dimensão mudar, coloca um subtítulo
-        if dim != dimensao_atual:
-            linhas.append("")
-            linhas.append(f"=== {dim} ===")
-            dimensao_atual = dim
+for q in QUESTOES[inicio:fim]:
+    dim = q["dimensao"]
 
-        nota = respostas_dict.get(q["id"])
-        linhas.append(f"- {q['id']} | '{q['texto']}' -> nota {nota}")
+    # subtítulo sempre que mudar de dimensão
+    if dim != ultima_dim:
+        st.markdown(
+            f"""
+            <div style="
+                margin-top: 1.5rem;
+                padding: 0.6rem 1rem;
+                background-color: #f6f6f6;
+                border-left: 5px solid #FFC728;
+                border-radius: 5px;
+                font-weight: 600;
+                font-size: 1.05rem;
+            ">
+                {dim}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        ultima_dim = dim
 
-    return "\n".join(linhas)
+    # slider da questão
+    atual = st.session_state.respostas_dict.get(q["id"], 1)
+
+    novo_valor = st.slider(
+        label=f"{q['id']} — {q['texto']}",
+        min_value=0,
+        max_value=3,
+        value=atual,
+        step=1,
+        help="0 = Inexistente | 3 = Bem estruturado",
+        key=f"slider_{q['id']}",
+    )
+
+    st.session_state.respostas_dict[q["id"]] = novo_valor
+
 
 
 
