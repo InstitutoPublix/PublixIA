@@ -425,7 +425,6 @@ with col_form:
         "Federal",
         "Estadual",
         "Municipal",
-        "Distrital",
         "Não se aplica",
     ],
 )
