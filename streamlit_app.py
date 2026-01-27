@@ -9,7 +9,8 @@ import os
 # -------------------
 # CONFIG GERAIS
 # -------------------
-st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="wide")
+st.set_page_config(page_title="Diagnóstico de Maturidade + IA", layout="centered")
+
 
 st.markdown(
     """
