@@ -553,7 +553,19 @@ with col_form:
         st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
 
     with col3:
-        gerar = st.button("Gerar diagnóstico", key="btn_gerar", use_container_width=True)
+    ultimo_bloco = (pagina == total_paginas)
+    gerar = st.button(
+        "Gerar diagnóstico",
+        key="btn_gerar",
+        use_container_width=True,
+        disabled=(not ultimo_bloco) or (not aceite),
+    )
+
+    if not ultimo_bloco:
+        st.caption("Finalize todos os blocos para habilitar o diagnóstico.")
+    elif not aceite:
+        st.caption("Marque a autorização de uso das informações para gerar o diagnóstico.")
+
 
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
