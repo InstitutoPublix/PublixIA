@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import math
 import openai
-import streamlit.components.v1 as components  # <-- NOVO
+import streamlit.components.v1 as components
 import os
 
 
@@ -15,9 +15,7 @@ st.markdown(
     """
 <style>
 /* Remove sidebar */
-[data-testid="stSidebar"] {
-    display: none !important;
-}
+[data-testid="stSidebar"] { display: none !important; }
 
 /* Largura do conteúdo principal */
 .block-container {
@@ -26,9 +24,7 @@ st.markdown(
 }
 
 /* Espaçamento entre sliders */
-div[data-testid="stSlider"] {
-    margin-bottom: 0.7rem !important;
-}
+div[data-testid="stSlider"] { margin-bottom: 0.7rem !important; }
 
 /* Some menu do Streamlit */
 #MainMenu {visibility: hidden;}
@@ -40,8 +36,7 @@ footer {visibility: hidden;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
 
-/* Oculta botão flutuante extra padrão do Streamlit (deploy etc.) 
-   MAS NÃO esconde qualquer div fixa no canto direito */
+/* Oculta botão flutuante extra padrão do Streamlit (deploy etc.) */
 button[aria-label="Manage app"],
 div[data-testid="manage-app-button"],
 div[data-testid="ManageAppButton"] {
@@ -54,9 +49,11 @@ div[data-testid="stAlert"] {
     border-left: 6px solid #E0A600 !important;
     border-radius: 8px !important;
 }
-div[data-testid="stAlert"] * {
-    color: #000000 !important;
-}
+div[data-testid="stAlert"] * { color: #000000 !important; }
+
+/* Melhorar espaçamento dos títulos */
+h2 { margin-top: 1.2rem !important; margin-bottom: 0.4rem !important; }
+h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -67,7 +64,7 @@ st.markdown(
 <h1 style='margin-bottom: -10px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
-A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong>  é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
+A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ele interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
@@ -85,11 +82,8 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 # -------------------
 # API KEY
 # -------------------
-
-# tenta pegar primeiro das variáveis de ambiente (Render)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# se não encontrar, mostra erro amigável e para o app
 if not openai_api_key:
     st.error(
         "OPENAI_API_KEY não encontrada. "
@@ -97,7 +91,6 @@ if not openai_api_key:
     )
     st.stop()
 
-# se quiser, pode setar explicitamente para a lib openai
 openai.api_key = openai_api_key
 
 
@@ -131,6 +124,7 @@ QUESTOES = [
     {"id": "1.7.1", "texto": "Os planos da organização são aderentes ao plano de governo, planos de desenvolvimento nacionais, regionais, municipais e de outros atores?", "dimensao": "Agenda Estratégica"},
     {"id": "1.7.2", "texto": " A organização participa da elaboração da agenda de desenvolvimento econômico, social, ambiental, político e outros relevantes para o seu campo de atuação, a partir das reflexões promovidas no seu próprio ambiente interno?", "dimensao": "Agenda Estratégica"},
     {"id": "1.7.3", "texto": "As políticas, programas e ações para o desenvolvimento econômico, social, ambiental e político consideram os planos da organização?", "dimensao": "Agenda Estratégica"},
+
     {"id": "2.1.1", "texto": "A estrutura organizacional está formalizada?", "dimensao": "Alinhamento da Estrutura implementadora"},
     {"id": "2.1.2", "texto": "A estrutura organizacional foi elaborada considerando o atingimento dos objetivos institucionais?", "dimensao": "Alinhamento da Estrutura implementadora"},
     {"id": "2.1.3", "texto": "A estrutura organizacional (arranjo organizacional, rede etc.) foi elaborada considerando-se a natureza das políticas e programas de desenvolvimento nos quais a organização atua?", "dimensao": "Alinhamento da Estrutura implementadora"},
@@ -150,6 +144,7 @@ QUESTOES = [
     {"id": "2.6.1", "texto": "A realização dos processos e atividades dos órgãos dentro da organização é formalizada em documentos institucionais?", "dimensao": "Alinhamento da Estrutura implementadora"},
     {"id": "2.6.2", "texto": "A divisão de tarefas entre os órgãos menores encarregados das atividades operacionaliza-se em função dos objetivos da organização?", "dimensao": "Alinhamento da Estrutura implementadora"},
     {"id": "2.6.3", "texto": "A organização dispõe de estrutura formal definida pela dire...cimento de recursos humanos e apostilando quais os desdobramentos decorrentes da situação de falta?", "dimensao": "Alinhamento da Estrutura implementadora"},
+
     {"id": "3.1.1", "texto": "Os arranjos de colaboração e coordenação institucional existentes na organização são aderentes ao mandato institucional?", "dimensao": "Monitoramento e Avaliação"},
     {"id": "3.1.2", "texto": "Os arranjos existentes são aderentes aos processos de formulação, implementação, monitoramento e avaliação de políticas e programas?", "dimensao": "Monitoramento e Avaliação"},
     {"id": "3.2.1", "texto": "A organização participa da formulação de políticas públicas integradas à sua área de atuação?", "dimensao": "Monitoramento e Avaliação"},
@@ -180,7 +175,6 @@ VALORES_ESCALA = {
     3: "3 - Bem estruturado",
 }
 
-# médias nacionais por dimensão
 observatorio_means = {
     "Agenda Estratégica": 1.92,
     "Estrutura da Implementação": 1.53,
@@ -242,9 +236,8 @@ BASE_MEDIA_POR_ESFERA = {
     "organismo internacional": 1.93,
 }
 
-
 # -------------------
-# TÍTULOS E SUBTÍTULOS (NOVO)
+# TÍTULOS E SUBTÍTULOS
 # -------------------
 PART_TITLES = {
     "1": "Agenda Estratégica",
@@ -253,13 +246,11 @@ PART_TITLES = {
 }
 
 SECTION_TITLES = {
-    # Parte 1
     "1.1": "Compreensão do Ambiente Institucional",
     "1.2": "Estabelecimento do Propósito",
     "1.3": "Definição de Resultados",
     "1.4": "Definição de Esforços de Implementação",
 
-    # Parte 2
     "2.1": "Desdobramento da Estratégia",
     "2.2": "Pactuação Interna",
     "2.3": "Pactuação Externa",
@@ -270,7 +261,6 @@ SECTION_TITLES = {
     "2.8": "Alinhamento de TI",
     "2.9": "Alinhamento do Orçamento",
 
-    # Parte 3
     "3.1": "Sistemática de M&A",
     "3.2": "Prestação de Contas",
     "3.3": "Correção de Rumo",
@@ -299,9 +289,7 @@ def _normalizar_label(texto: str) -> str | None:
     return substituicoes.get(t, t)
 
 
-DIM_ALIAS = {
-    "Alinhamento da Estrutura implementadora": "Estrutura da Implementação",
-}
+DIM_ALIAS = {"Alinhamento da Estrutura implementadora": "Estrutura da Implementação"}
 
 
 def calcular_medias_por_dimensao(respostas_dict):
@@ -314,8 +302,7 @@ def calcular_medias_por_dimensao(respostas_dict):
         .replace(DIM_ALIAS)
     )
     df["nota"] = df["id"].map(respostas_dict)
-    medias = df.groupby("dim_key")["nota"].mean().round(2).to_dict()
-    return medias
+    return df.groupby("dim_key")["nota"].mean().round(2).to_dict()
 
 
 def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medias_dimensao):
@@ -368,8 +355,6 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     dimensao_atual = None
     for q in QUESTOES:
         dim = q["dimensao"]
-
-        # subtítulo textual sempre que mudar de dimensão
         if dim != dimensao_atual:
             linhas.append("")
             linhas.append(f"=== {dim} ===")
@@ -395,7 +380,6 @@ indicando pontos fortes, fragilidades e caminhos práticos de evolução.
         {"role": "system", "content": perfil_texto},
     ]
 
-    # histórico completo (user + assistant)
     messages.extend(chat_history)
 
     try:
@@ -430,210 +414,190 @@ if "pagina_quest" not in st.session_state:
 
 
 # -------------------
-# LAYOUT
+# FORMULÁRIO + PERGUNTAS (AGORA EM CIMA)
 # -------------------
-col_form, col_chat = st.columns([2, 3])
+st.subheader("1. Preencha o diagnóstico da sua organização")
 
-with col_form:
-    st.subheader("1. Preencha o diagnóstico da sua organização")
+instituicao = st.text_input("Instituição", "")
 
-    instituicao = st.text_input("Instituição", "")
+poder = st.selectbox(
+    "Poder",
+    [
+        "",
+        "Executivo",
+        "Legislativo",
+        "Judiciário",
+        "Ministério Público",
+        "Outro (organismo internacional etc.)",
+    ],
+)
 
-    poder = st.selectbox(
-        "Poder",
-        [
-            "",
-            "Executivo",
-            "Legislativo",
-            "Judiciário",
-            "Ministério Público",
-            "Outro (organismo internacional etc.)",
-        ],
+esfera = st.selectbox(
+    "Esfera",
+    [
+        "",
+        "Federal",
+        "Estadual",
+        "Municipal",
+        "Não se aplica",
+    ],
+)
+
+estado = st.selectbox(
+    "Estado (UF)",
+    [
+        "",
+        "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+        "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+        "RO", "RR", "RS", "SC", "SE", "SP", "TO"
+    ],
+)
+
+st.markdown("### Autorização de uso das informações")
+
+aceite = st.checkbox(
+    "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
+    value=False
+)
+
+st.markdown(
+    "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
+    unsafe_allow_html=True
+)
+
+QUESTOES_POR_PAG = 10
+total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
+
+pagina = st.session_state.pagina_quest
+inicio = (pagina - 1) * QUESTOES_POR_PAG
+fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
+
+st.write(f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):")
+
+# LOOP COM TÍTULOS / SUBTÍTULOS
+part_atual = None
+sec_atual = None
+
+for q in QUESTOES[inicio:fim]:
+    qid = q["id"]
+    part, sec = extrair_partes(qid)
+
+    # TÍTULO (nível 1)
+    if part != part_atual:
+        titulo = PART_TITLES.get(part, "")
+        st.markdown("---")
+        st.markdown(f"## {part}. {titulo}" if titulo else f"## {part}")
+        part_atual = part
+        sec_atual = None
+
+    # SUBTÍTULO (nível 2)
+    if sec and sec != sec_atual:
+        subtitulo = SECTION_TITLES.get(sec, "")
+        st.markdown(f"### {sec}. {subtitulo}" if subtitulo else f"### {sec}")
+        sec_atual = sec
+
+    atual = st.session_state.respostas_dict.get(qid, 1)
+    novo_valor = st.slider(
+        label=f"{qid} — {q['texto']}",
+        min_value=0,
+        max_value=3,
+        value=atual,
+        step=1,
+        help="0 = Inexistente | 3 = Avançado",
+        key=f"slider_{qid}",
     )
+    st.session_state.respostas_dict[qid] = novo_valor
 
-    esfera = st.selectbox(
-        "Esfera",
-        [
-            "",
-            "Federal",
-            "Estadual",
-            "Municipal",
-            "Não se aplica",
-        ],
+col1, col2, col3 = st.columns([1, 1, 2])
+
+def ir_anterior():
+    if st.session_state.pagina_quest > 1:
+        st.session_state.pagina_quest -= 1
+
+def ir_proximo():
+    if st.session_state.pagina_quest < total_paginas:
+        st.session_state.pagina_quest += 1
+
+with col1:
+    st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
+
+with col2:
+    st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
+
+with col3:
+    ultimo_bloco = (pagina == total_paginas)
+    gerar = st.button(
+        "Gerar diagnóstico",
+        key="btn_gerar",
+        use_container_width=True,
+        disabled=not ultimo_bloco,   # <-- só habilita no último bloco
     )
+    if not ultimo_bloco:
+        st.caption("Finalize todos os blocos para habilitar o diagnóstico.")
 
-    estado = st.selectbox(
-        "Estado (UF)",
-        [
-            "",
-            "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-            "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-            "RO", "RR", "RS", "SC", "SE", "SP", "TO"
-        ],
+if gerar:
+    respostas = st.session_state.respostas_dict.copy()
+    st.session_state.diagnostico_respostas = respostas
+
+    medias_dim = calcular_medias_por_dimensao(respostas)
+    perfil_txt = montar_perfil_texto(
+        instituicao,
+        poder,
+        esfera,
+        estado,
+        respostas,
+        medias_dim,
     )
+    st.session_state.diagnostico_perfil_texto = perfil_txt
 
-    st.markdown("### Autorização de uso das informações")
+    st.success("Diagnóstico gerado! Agora você pode conversar com a IA abaixo.")
 
-    aceite = st.checkbox(
-        "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
-        value=False
-    )
-
-    st.markdown(
-        "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
-        unsafe_allow_html=True
-    )
-
-    QUESTOES_POR_PAG = 10
-    total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
-
-    pagina = st.session_state.pagina_quest
-    inicio = (pagina - 1) * QUESTOES_POR_PAG
-    fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
-
-    st.write(f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):")
-
-    # -------------------
-    # LOOP COM TÍTULOS / SUBTÍTULOS (NOVO)
-    # -------------------
-    part_atual = None
-    sec_atual = None
-
-    for q in QUESTOES[inicio:fim]:
-        qid = q["id"]
-        part, sec = extrair_partes(qid)
-
-        # TÍTULO (nível 1)
-        if part != part_atual:
-            titulo = PART_TITLES.get(part, "")
-            st.markdown("---")
-            if titulo:
-                st.markdown(f"## {part}. {titulo}")
-            else:
-                st.markdown(f"## {part}")
-            part_atual = part
-            sec_atual = None  # reset quando muda a parte
-
-        # SUBTÍTULO (nível 2)
-        if sec and sec != sec_atual:
-            subtitulo = SECTION_TITLES.get(sec, "")
-            if subtitulo:
-                st.markdown(f"### {sec}. {subtitulo}")
-            else:
-                st.markdown(f"### {sec}")
-            sec_atual = sec
-
-        # Slider (igual ao seu)
-        atual = st.session_state.respostas_dict.get(qid, 1)
-        novo_valor = st.slider(
-            label=f"{qid} — {q['texto']}",
-            min_value=0,
-            max_value=3,
-            value=atual,
-            step=1,
-            help="0 = Inexistente | 3 = Avançado",
-            key=f"slider_{qid}",
-        )
-        st.session_state.respostas_dict[qid] = novo_valor
-
-    col1, col2, col3 = st.columns([1, 1, 2])
-
-    def ir_anterior():
-        if st.session_state.pagina_quest > 1:
-            st.session_state.pagina_quest -= 1
-
-    def ir_proximo():
-        if st.session_state.pagina_quest < total_paginas:
-            st.session_state.pagina_quest += 1
-
-    with col1:
-        st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
-
-    with col2:
-        st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
-
-    with col3:
-        ultimo_bloco = (pagina == total_paginas)
-        gerar = st.button(
-            "Gerar diagnóstico",
-            key="btn_gerar",
-            use_container_width=True,
-            disabled=(not ultimo_bloco) or (not aceite),
-        )
-
-        if not ultimo_bloco:
-            st.caption("Finalize todos os blocos para habilitar o diagnóstico.")
-        elif not aceite:
-            st.caption("Marque a autorização de uso das informações para gerar o diagnóstico.")
+    st.write("### Resumo do diagnóstico (por dimensão)")
+    for dim, media in medias_dim.items():
+        base = observatorio_means.get(dim)
+        if base is not None:
+            st.write(f"- *{dim}*: {media:.2f} (base: {base:.2f})")
+        else:
+            st.write(f"- *{dim}*: {media:.2f}")
 
 
-    if gerar:
-        respostas = st.session_state.respostas_dict.copy()
-        st.session_state.diagnostico_respostas = respostas
+# -------------------
+# CHAT (AGORA EMBAIXO)
+# -------------------
+st.markdown("---")
+st.subheader("2. Converse com a IA sobre o seu diagnóstico")
 
-        medias_dim = calcular_medias_por_dimensao(respostas)
-        perfil_txt = montar_perfil_texto(
-            instituicao,
-            poder,
-            esfera,
-            estado,
-            respostas,
-            medias_dim,
-        )
-        st.session_state.diagnostico_perfil_texto = perfil_txt
+if st.session_state.diagnostico_perfil_texto is None:
+    st.info("Preencha o diagnóstico acima e gere o diagnóstico para habilitar o chat.")
 
-        st.success("Diagnóstico gerado! Agora você pode ir para o chat com a IA na coluna ao lado.")
-
-        st.write("### Resumo do diagnóstico (por dimensão)")
-        for dim, media in medias_dim.items():
-            base = observatorio_means.get(dim)
-            if base is not None:
-                st.write(f"- *{dim}*: {media:.2f} (base: {base:.2f})")
-            else:
-                st.write(f"- *{dim}*: {media:.2f}")
-
-
-with col_chat:
-    st.subheader("2. Converse com a IA sobre o seu diagnóstico")
-
-    if st.session_state.diagnostico_perfil_texto is None:
-        st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
-
-    elif openai_api_key is None:
-        st.warning("API Key não encontrada. Verifique a variável de ambiente OPENAI_API_KEY no Render.")
-
-    else:
-        for msg in st.session_state.chat_history:
-            if msg["role"] == "user":
-                with st.chat_message("user"):
-                    st.markdown(msg["content"])
-            elif msg["role"] == "assistant":
-                with st.chat_message("assistant"):
-                    st.markdown(msg["content"])
-
-        prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
-
-        if prompt:
-            user_msg = {"role": "user", "content": prompt}
-
-            # 1) mostra a mensagem do usuário
+else:
+    for msg in st.session_state.chat_history:
+        if msg["role"] == "user":
             with st.chat_message("user"):
-                st.markdown(prompt)
-
-            # 2) adiciona ao histórico
-            st.session_state.chat_history.append(user_msg)
-
-            # 3) chama a IA usando o histórico completo
+                st.markdown(msg["content"])
+        elif msg["role"] == "assistant":
             with st.chat_message("assistant"):
-                with st.spinner("Gerando resposta da IA..."):
-                    resposta = chamar_ia(
-                        st.session_state.diagnostico_perfil_texto,
-                        st.session_state.chat_history,
-                    )
-                    st.markdown(resposta)
+                st.markdown(msg["content"])
 
-            # 4) salva resposta no histórico
-            st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+    prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
+
+    if prompt:
+        user_msg = {"role": "user", "content": prompt}
+
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        st.session_state.chat_history.append(user_msg)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Gerando resposta da IA..."):
+                resposta = chamar_ia(
+                    st.session_state.diagnostico_perfil_texto,
+                    st.session_state.chat_history,
+                )
+                st.markdown(resposta)
+
+        st.session_state.chat_history.append({"role": "assistant", "content": resposta})
 
 
 # -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
@@ -642,7 +606,6 @@ components.html(
     <script>
     function printPage() {
         try {
-            // Tenta imprimir a página "pai" (onde está o app Streamlit)
             if (window.parent && window.parent !== window) {
                 window.parent.print();
             } else if (window.top) {
@@ -651,20 +614,12 @@ components.html(
                 window.print();
             }
         } catch (e) {
-            // Se der algum erro de cross-origin, tenta pelo próprio iframe
             window.print();
         }
     }
     </script>
 
-    <div
-        style="
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-        "
-    >
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
         <button
             onclick="printPage()"
             style="
@@ -689,9 +644,7 @@ st.markdown(
     """
 <hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
 <div style="font-size: 0.85rem; color: #777777; text-align: right;">
-    Desenvolvido pelo <span style="font-weight: 600; color: #FFC728;">
-    Instituto Publix
-    </span>
+    Desenvolvido pelo <span style="font-weight: 600; color: #FFC728;">Instituto Publix</span>
 </div>
 """,
     unsafe_allow_html=True,
