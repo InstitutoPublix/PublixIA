@@ -72,7 +72,6 @@ A <strong>Inteligência Artificial do Observatório da Governança para Resultad
 
 <p style='font-size: 1.05rem; line-height: 1.55;'>
 Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, o Radar oferece uma visão integrada e acionável sobre a maturidade institucional. É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
-
 </p>
 
 <p style='font-size: 1.05rem; line-height: 1.55; font-weight: 600;'>
@@ -83,13 +82,9 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 )
 
 
-
-
 # -------------------
 # API KEY
 # -------------------
-
-import os
 
 # tenta pegar primeiro das variáveis de ambiente (Render)
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -104,6 +99,7 @@ if not openai_api_key:
 
 # se quiser, pode setar explicitamente para a lib openai
 openai.api_key = openai_api_key
+
 
 # -------------------
 # QUESTÕES
@@ -191,7 +187,6 @@ observatorio_means = {
     "Monitoramento e Avaliação": 1.47,
 }
 
-
 BASE_SINTETICA = """
 Base nacional do Observatório de Maturidade – resumo sintético
 
@@ -230,7 +225,6 @@ Base nacional do Observatório de Maturidade – resumo sintético
 - Monitoramento e Avaliação costuma ser o principal ponto crítico.
 """
 
-
 BASE_MEDIA_POR_PODER = {
     "organismo internacional": 1.93,
     "empresa pública": 1.87,
@@ -247,6 +241,47 @@ BASE_MEDIA_POR_ESFERA = {
     "privado": 1.81,
     "organismo internacional": 1.93,
 }
+
+
+# -------------------
+# TÍTULOS E SUBTÍTULOS (NOVO)
+# -------------------
+PART_TITLES = {
+    "1": "Agenda Estratégica",
+    "2": "Alinhamento da Estrutura Implementadora",
+    "3": "Monitoramento e Avaliação",
+}
+
+SECTION_TITLES = {
+    # Parte 1
+    "1.1": "Compreensão do Ambiente Institucional",
+    "1.2": "Estabelecimento do Propósito",
+    "1.3": "Definição de Resultados",
+    "1.4": "Definição de Esforços de Implementação",
+
+    # Parte 2
+    "2.1": "Desdobramento da Estratégia",
+    "2.2": "Pactuação Interna",
+    "2.3": "Pactuação Externa",
+    "2.4": "Alinhamento de Processos",
+    "2.5": "Alinhamento de Estrutura",
+    "2.6": "Alinhamento de Pessoas",
+    "2.7": "Alinhamento de Lideranças",
+    "2.8": "Alinhamento de TI",
+    "2.9": "Alinhamento do Orçamento",
+
+    # Parte 3
+    "3.1": "Sistemática de M&A",
+    "3.2": "Prestação de Contas",
+    "3.3": "Correção de Rumo",
+    "3.4": "Benefícios",
+}
+
+def extrair_partes(qid: str):
+    partes = str(qid).split(".")
+    part = partes[0] if len(partes) >= 1 else None
+    sec = ".".join(partes[:2]) if len(partes) >= 2 else None
+    return part, sec
 
 
 def _normalizar_label(texto: str) -> str | None:
@@ -346,7 +381,6 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     return "\n".join(linhas)
 
 
-
 def chamar_ia(perfil_texto, chat_history):
     system_prompt = """
 Você é o Radar Publix, assistente de IA especializado em gestão pública e maturidade institucional.
@@ -374,7 +408,6 @@ indicando pontos fortes, fragilidades e caminhos práticos de evolução.
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
-
 
 
 # -------------------
@@ -407,50 +440,49 @@ with col_form:
     instituicao = st.text_input("Instituição", "")
 
     poder = st.selectbox(
-    "Poder",
-    [
-        "",
-        "Executivo",
-        "Legislativo",
-        "Judiciário",
-        "Ministério Público",
-        "Outro (organismo internacional etc.)",
-    ],
-)
+        "Poder",
+        [
+            "",
+            "Executivo",
+            "Legislativo",
+            "Judiciário",
+            "Ministério Público",
+            "Outro (organismo internacional etc.)",
+        ],
+    )
 
     esfera = st.selectbox(
-    "Esfera",
-    [
-        "",
-        "Federal",
-        "Estadual",
-        "Municipal",
-        "Não se aplica",
-    ],
-)
+        "Esfera",
+        [
+            "",
+            "Federal",
+            "Estadual",
+            "Municipal",
+            "Não se aplica",
+        ],
+    )
 
     estado = st.selectbox(
-    "Estado (UF)",
-    [
-        "",
-        "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-        "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-        "RO", "RR", "RS", "SC", "SE", "SP", "TO"
-    ],
-)
-    
+        "Estado (UF)",
+        [
+            "",
+            "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+            "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+            "RO", "RR", "RS", "SC", "SE", "SP", "TO"
+        ],
+    )
+
     st.markdown("### Autorização de uso das informações")
 
     aceite = st.checkbox(
-    "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
-    value=False
-)
+        "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
+        value=False
+    )
 
     st.markdown(
-    "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
-    unsafe_allow_html=True
-)
-
+        "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
+        unsafe_allow_html=True
+    )
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
@@ -461,18 +493,48 @@ with col_form:
 
     st.write(f"Responda cada afirmação numa escala de 0 a 3 (bloco {pagina} de {total_paginas}):")
 
+    # -------------------
+    # LOOP COM TÍTULOS / SUBTÍTULOS (NOVO)
+    # -------------------
+    part_atual = None
+    sec_atual = None
+
     for q in QUESTOES[inicio:fim]:
-        atual = st.session_state.respostas_dict.get(q["id"], 1)
+        qid = q["id"]
+        part, sec = extrair_partes(qid)
+
+        # TÍTULO (nível 1)
+        if part != part_atual:
+            titulo = PART_TITLES.get(part, "")
+            st.markdown("---")
+            if titulo:
+                st.markdown(f"## {part}. {titulo}")
+            else:
+                st.markdown(f"## {part}")
+            part_atual = part
+            sec_atual = None  # reset quando muda a parte
+
+        # SUBTÍTULO (nível 2)
+        if sec and sec != sec_atual:
+            subtitulo = SECTION_TITLES.get(sec, "")
+            if subtitulo:
+                st.markdown(f"### {sec}. {subtitulo}")
+            else:
+                st.markdown(f"### {sec}")
+            sec_atual = sec
+
+        # Slider (igual ao seu)
+        atual = st.session_state.respostas_dict.get(qid, 1)
         novo_valor = st.slider(
-            label=f"{q['id']} — {q['texto']}",
+            label=f"{qid} — {q['texto']}",
             min_value=0,
             max_value=3,
             value=atual,
             step=1,
             help="0 = Inexistente | 3 = Avançado",
-            key=f"slider_{q['id']}",
+            key=f"slider_{qid}",
         )
-        st.session_state.respostas_dict[q["id"]] = novo_valor
+        st.session_state.respostas_dict[qid] = novo_valor
 
     col1, col2, col3 = st.columns([1, 1, 2])
 
@@ -521,7 +583,7 @@ with col_form:
 
 with col_chat:
     st.subheader("2. Converse com a IA sobre o seu diagnóstico")
-    
+
     if st.session_state.diagnostico_perfil_texto is None:
         st.info("Preencha o diagnóstico na coluna ao lado para habilitar o chat.")
 
@@ -536,8 +598,6 @@ with col_chat:
             elif msg["role"] == "assistant":
                 with st.chat_message("assistant"):
                     st.markdown(msg["content"])
-
-    
 
         prompt = st.chat_input("Faça uma pergunta para a IA sobre o diagnóstico da sua organização...")
 
@@ -562,7 +622,6 @@ with col_chat:
 
             # 4) salva resposta no histórico
             st.session_state.chat_history.append({"role": "assistant", "content": resposta})
-
 
 
 # -------- BOTÃO FLUTUANTE SEMPRE VISÍVEL --------
@@ -613,9 +672,6 @@ components.html(
     """,
     height=80,
 )
-
-
-
 
 st.markdown(
     """
