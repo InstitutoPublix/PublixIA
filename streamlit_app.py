@@ -869,9 +869,11 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
-# RESUMO EXECUTIVO (VISÍVEL NA TELA)
+# RESUMO EXECUTIVO (VISÍVEL NA TELA, NÃO IMPRIME)
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
+
     r = st.session_state.registro_salvo
 
     st.markdown("---")
@@ -928,6 +930,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             unsafe_allow_html=True,
         )
 
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # -------------------
 # RELATÓRIO PRINT-ONLY (PDF BONITO) - CORRIGIDO
