@@ -981,7 +981,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     html_dim_cards = "".join(cards_html_list)
 
     html_relatorio = (
-        '<div class="print-only">'
+        '<div id="report-print-root" class="print-only">'
         '<div class="report-wrap">'
         '<div class="publix-band"></div>'
         '<div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>'
@@ -1058,30 +1058,88 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
-# BOTÃO FLUTUANTE PDF
+# BOTÃO FLUTUANTE PDF (IMPRIME SOMENTE O RELATÓRIO)
 # -------------------
 if st.session_state.respondente_salvo:
     components.html(
         """
         <script>
-        function printPage() {
+        function printOnlyReport() {
             try {
-                if (window.parent && window.parent !== window) {
-                    window.parent.print();
-                } else if (window.top) {
-                    window.top.print();
-                } else {
-                    window.print();
+                const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
+                const report = rootDoc.getElementById("report-print-root");
+
+                if (!report) {
+                    alert("Relatório não encontrado para impressão.");
+                    return;
                 }
+
+                // Coleta estilos da página principal para manter o visual
+                const styles = Array.from(rootDoc.querySelectorAll("style, link[rel='stylesheet']"))
+                    .map(el => el.outerHTML)
+                    .join("\\n");
+
+                // CSS extra para garantir impressão limpa
+                const extraPrintCss = `
+                    <style>
+                        @page { size: A4; margin: 12mm; }
+                        html, body { background: #fff !important; margin: 0; padding: 0; }
+                        body {
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            font-family: sans-serif;
+                        }
+
+                        /* Garante que o relatório apareça */
+                        .print-only { display: block !important; }
+
+                        /* Evita quebra feia */
+                        .report-wrap, .kpi-card, .dim-card {
+                            break-inside: avoid !important;
+                            page-break-inside: avoid !important;
+                        }
+                    </style>
+                `;
+
+                const printWindow = window.open("", "_blank", "width=1024,height=768");
+                if (!printWindow) {
+                    alert("Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou pop-up.");
+                    return;
+                }
+
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8" />
+                        <title>Relatório de Diagnóstico</title>
+                        ${styles}
+                        ${extraPrintCss}
+                    </head>
+                    <body>
+                        ${report.outerHTML}
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+
+                // Espera renderizar antes de imprimir
+                printWindow.onload = function() {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                };
             } catch (e) {
-                window.print();
+                console.error(e);
+                alert("Erro ao gerar impressão do relatório.");
             }
         }
         </script>
 
-        <div class="no-print" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
+        <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
             <button
-                onclick="printPage()"
+                onclick="printOnlyReport()"
                 style="
                     background-color: #FFC728;
                     border: none;
