@@ -7,6 +7,7 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
+import textwrap
 
 
 # -------------------
@@ -965,13 +966,13 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             prioridade = "Prioridade de consolidação"
             recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
 
-        html_dim_cards += f"""
+        html_dim_cards += textwrap.dedent(f"""
 <div class="dim-card">
     <strong>{dim}</strong>
     <div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>
     <div class="muted"><b>{prioridade}:</b> {recomendacao}</div>
 </div>
-"""
+""")
 
     html_relatorio = f"""
 <div class="print-only">
@@ -1035,7 +1036,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 </div>
 """
 
-    st.markdown(html_relatorio, unsafe_allow_html=True)
+    st.markdown(textwrap.dedent(html_relatorio), unsafe_allow_html=True)
 # -------------------
 # ETAPA 4 — CHAT COM IA
 # -------------------
