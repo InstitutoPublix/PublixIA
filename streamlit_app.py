@@ -12,19 +12,21 @@ from pathlib import Path
 # -------------------
 # CONFIG GERAIS
 # -------------------
-st.set_page_config(page_title="Observatório de Governança para Resultados: IA", layout="centered")
+st.set_page_config(
+    page_title="Observatório de Governança para Resultados: IA",
+    layout="centered"
+)
 
 st.markdown(
     """
 <style>
+/* ----------------- BASE ----------------- */
 [data-testid="stSidebar"] { display: none !important; }
 
 .block-container {
-    padding-top: 1.5rem !important;
+    padding-top: 1.2rem !important;
     max-width: 1200px !important;
 }
-
-div[data-testid="stSlider"] { margin-bottom: 0.7rem !important; }
 
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
@@ -39,84 +41,210 @@ div[data-testid="ManageAppButton"] {
     display: none !important;
 }
 
+div[data-testid="stSlider"] {
+    margin-bottom: 0.7rem !important;
+}
+
+h1, h2, h3 {
+    color: #111;
+}
+
+/* Alerta amarelo Publix */
 div[data-testid="stAlert"] {
-    background-color: #FFC728 !important;
-    border-left: 6px solid #E0A600 !important;
+    background-color: #FFF3C4 !important;
+    border-left: 6px solid #FFC728 !important;
     border-radius: 8px !important;
 }
-div[data-testid="stAlert"] * { color: #000000 !important; }
+div[data-testid="stAlert"] * { color: #000 !important; }
 
-h2 { margin-top: 1.2rem !important; margin-bottom: 0.4rem !important; }
-h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
-
-.result-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-left: 5px solid #FFC728;
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
-}
-.result-card-title {
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-.result-card-sub {
-    color: #444;
-    font-size: 0.93rem;
-}
-
-.action-box {
-    background: #fff8e1;
-    border: 1px solid #f3d36c;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin: 8px 0 14px 0;
-}
-
+/* Cartões / blocos */
 .form-card {
-    border: 1px solid #d9d9d9;
+    border: 1px solid #dddddd;
     border-radius: 10px;
     padding: 14px;
     background: #f8f8f8;
     margin-bottom: 14px;
 }
 
-/* ---------- PRINT / PDF ---------- */
+.action-box {
+    background: #fff8e1;
+    border: 1px solid #f3d36c;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 8px 0 12px 0;
+}
+
+.result-card {
+    background: #fff;
+    border: 1px solid #e6e6e6;
+    border-left: 5px solid #FFC728;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+.result-card-title {
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+.result-card-sub {
+    color: #444;
+    font-size: 0.94rem;
+}
+
+/* Relatório bonito p/ PDF */
+.report-wrap {
+    background: #ffffff;
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+    padding: 18px;
+    margin: 12px 0 16px 0;
+}
+
+.report-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.report-subtitle {
+    color: #555;
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+}
+
+.publix-band {
+    height: 8px;
+    background: linear-gradient(90deg, #FFC728 0%, #FFB300 100%);
+    border-radius: 999px;
+    margin-bottom: 12px;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 10px 0 14px 0;
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-left: 5px solid #FFC728;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.kpi-card .label {
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.kpi-card .value {
+    font-weight: 800;
+    font-size: 1.02rem;
+    color: #111;
+    word-break: break-word;
+}
+
+.section-print-title {
+    font-weight: 800;
+    font-size: 1rem;
+    margin: 12px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #ececec;
+}
+
+.dim-card {
+    border: 1px solid #e9e9e9;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #fff;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.dim-card strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.muted {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Controle print */
+.no-print { display: block; }
+.print-only { display: none; }
+
+/* ----------------- PRINT / PDF ----------------- */
 @media print {
-    body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+    @page {
+        size: A4;
+        margin: 12mm;
+    }
+
+    html, body {
         background: #fff !important;
     }
 
+    body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Esconde tudo operacional */
+    [data-testid="stSidebar"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stStatusWidget"],
     [data-testid="stChatInput"],
-    .no-print,
-    iframe,
+    [data-testid="stForm"],
+    [data-testid="stSlider"],
+    [data-testid="stTextInput"],
+    [data-testid="stSelectbox"],
+    [data-testid="stCheckbox"],
     button,
     [role="button"],
-    [data-testid="stForm"],
-    [data-testid="stSlider"] {
+    iframe,
+    .no-print {
         display: none !important;
+        visibility: hidden !important;
+    }
+
+    .print-only {
+        display: block !important;
     }
 
     .block-container {
         max-width: 100% !important;
-        padding: 0.5rem 1rem !important;
+        padding: 0 !important;
     }
 
-    h1, h2, h3 {
-        page-break-after: avoid;
+    h1 { font-size: 18pt !important; margin-bottom: 6px !important; }
+    h2 { font-size: 14pt !important; margin: 10px 0 6px 0 !important; }
+    h3 { font-size: 12pt !important; margin: 8px 0 4px 0 !important; }
+
+    p, li, div, span {
+        font-size: 10.5pt !important;
+        line-height: 1.35 !important;
     }
 
-    .result-card {
-        break-inside: avoid;
-        page-break-inside: avoid;
+    .report-wrap,
+    .result-card,
+    .kpi-card,
+    .dim-card {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
     }
 
     hr {
-        border: none;
-        border-top: 1px solid #ddd !important;
+        border: none !important;
+        border-top: 1px solid #dcdcdc !important;
+        margin: 8px 0 !important;
     }
 }
 </style>
@@ -124,40 +252,45 @@ h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
     unsafe_allow_html=True,
 )
 
+# -------------------
+# HEADER (NO PRINT)
+# -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
-<h1 style='margin-bottom: -10px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
+<h1 style='margin-bottom: -8px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
 
-<p style='font-size: 1.05rem; line-height: 1.55;'>
-A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições. Ela interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
+<p style='font-size: 1.03rem; line-height: 1.52;'>
+A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições.
+Ela interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
 
-<p style='font-size: 1.05rem; line-height: 1.55;'>
-Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, o Radar oferece uma visão integrada e acionável sobre a maturidade institucional. É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
+<p style='font-size: 1.03rem; line-height: 1.52;'>
+Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, o Radar oferece uma visão integrada e acionável sobre a maturidade institucional.
+É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
 </p>
 
-<p style='font-size: 1.05rem; line-height: 1.55; font-weight: 600;'>
+<p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
 Observatório de Governança para Resultados — inteligência para evoluir capacidades na geração de resultados sustentáveis.
 </p>
 """,
     unsafe_allow_html=True,
 )
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
 # API KEY
 # -------------------
 openai_api_key = os.getenv("OPENAI_API_KEY")
-
 if not openai_api_key:
     st.error("OPENAI_API_KEY não encontrada. Configure a variável de ambiente OPENAI_API_KEY.")
     st.stop()
-
 openai.api_key = openai_api_key
 
 
 # -------------------
-# QUESTÕES (Agenda Estratégica)
+# QUESTÕES (APENAS AGENDA ESTRATÉGICA)
 # -------------------
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidades e ameaças dos contextos internos e externos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
@@ -224,7 +357,6 @@ BASE_MEDIA_POR_ESFERA = {
     "organismo internacional": 1.93,
 }
 
-
 PART_TITLES = {"1": "Agenda Estratégica"}
 SECTION_TITLES = {
     "1.1": "Compreensão do Ambiente Institucional",
@@ -237,6 +369,9 @@ SECTION_TITLES = {
 }
 
 
+# -------------------
+# FUNÇÕES AUXILIARES
+# -------------------
 def extrair_partes(qid: str):
     partes = str(qid).split(".")
     part = partes[0] if len(partes) >= 1 else None
@@ -292,9 +427,13 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     media_esfera_base = BASE_MEDIA_POR_ESFERA.get(esfera_norm) if esfera_norm else None
 
     if media_poder_base is not None:
-        linhas.append(f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}.")
+        linhas.append(
+            f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}."
+        )
     if media_esfera_base is not None:
-        linhas.append(f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}.")
+        linhas.append(
+            f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}."
+        )
     if media_poder_base is not None or media_esfera_base is not None:
         linhas.append("")
 
@@ -391,10 +530,23 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
         "nivel_maturidade": nivel,
     }
 
+    # scores por dimensão
     for dim, valor in medias_dim.items():
-        col = f"score_dim_{dim.lower().replace(' ', '_').replace('ã', 'a').replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó','o').replace('ú','u').replace('ç', 'c')}"
+        col = (
+            "score_dim_"
+            + dim.lower()
+            .replace(" ", "_")
+            .replace("ã", "a")
+            .replace("á", "a")
+            .replace("é", "e")
+            .replace("í", "i")
+            .replace("ó", "o")
+            .replace("ú", "u")
+            .replace("ç", "c")
+        )
         registro[col] = round(float(valor), 2)
 
+    # respostas detalhadas
     for qid, nota in respostas.items():
         registro[f"q_{qid.replace('.', '_')}"] = nota
 
@@ -440,8 +592,6 @@ if "respondente_salvo" not in st.session_state:
     st.session_state.respondente_salvo = False
 if "registro_salvo" not in st.session_state:
     st.session_state.registro_salvo = None
-
-# NOVOS STATES
 if "dados_institucionais" not in st.session_state:
     st.session_state.dados_institucionais = None
 if "etapa1_ok" not in st.session_state:
@@ -451,42 +601,51 @@ if "dados_pessoais" not in st.session_state:
 
 
 # -------------------
-# ETAPA 1 — DADOS INSTITUCIONAIS (ANTES DO DIAGNÓSTICO)
+# ETAPA 1 — DADOS INSTITUCIONAIS E AUTORIZAÇÃO
 # -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.subheader("1. Dados institucionais e autorização")
 
-with st.form("form_dados_institucionais"):
+with st.form("form_dados_institucionais", clear_on_submit=False):
     c1, c2 = st.columns(2)
 
     with c1:
-        instituicao = st.text_input("Instituição", value=st.session_state.get("instituicao_tmp", ""))
+        instituicao = st.text_input("Instituição")
         poder = st.selectbox(
             "A qual poder sua instituição pertence?",
-            ["", "Executivo", "Legislativo", "Judiciário", "Ministério Público", "Empresa pública", "Privado", "Organismo internacional", "Outro"],
-            key="poder_institucional",
+            [
+                "",
+                "Executivo",
+                "Legislativo",
+                "Judiciário",
+                "Ministério Público",
+                "Empresa pública",
+                "Privado",
+                "Organismo internacional",
+                "Outro",
+            ],
         )
 
     with c2:
         esfera = st.selectbox(
             "Esfera",
             ["", "Federal", "Estadual", "Municipal", "Privado", "Não se aplica"],
-            key="esfera_institucional",
         )
         estado_uf = st.selectbox(
             "Estado (UF)",
-            ["", "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-             "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-             "RO", "RR", "RS", "SC", "SE", "SP", "TO"],
-            key="estado_institucional",
+            [
+                "",
+                "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+                "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+                "RO", "RR", "RS", "SC", "SE", "SP", "TO"
+            ],
         )
 
     st.markdown("### Autorização de uso das informações")
     autorizacao_uso = st.checkbox(
         "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
         value=False,
-        key="autorizacao_uso_etapa1",
     )
-
     st.markdown(
         "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
         unsafe_allow_html=True
@@ -515,11 +674,13 @@ with st.form("form_dados_institucionais"):
             }
             st.session_state.etapa1_ok = True
             st.success("Dados institucionais salvos. Agora preencha a Agenda Estratégica.")
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
 # ETAPA 2 — DIAGNÓSTICO (AGENDA ESTRATÉGICA)
 # -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
 st.subheader("2. Agenda Estratégica")
 
@@ -598,10 +759,8 @@ else:
     if gerar:
         respostas = st.session_state.respostas_dict.copy()
         st.session_state.diagnostico_respostas = respostas
-
         medias_dim = calcular_medias_por_dimensao(respostas)
         st.session_state.medias_dimensao = medias_dim
-
         st.session_state.diagnostico_gerado = True
         st.session_state.respondente_salvo = False
         st.session_state.diagnostico_perfil_texto = None
@@ -627,11 +786,13 @@ else:
                     """,
                     unsafe_allow_html=True,
                 )
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
-# ETAPA 3 — DADOS PESSOAIS (PÓS-DIAGNÓSTICO, PARA IA)
+# ETAPA 3 — DADOS PESSOAIS (PARA LIBERAR IA)
 # -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 if st.session_state.diagnostico_gerado:
     st.markdown("---")
     st.subheader("3. Liberação da IA especialista")
@@ -645,7 +806,7 @@ if st.session_state.diagnostico_gerado:
         unsafe_allow_html=True,
     )
 
-    with st.form("form_dados_pessoais_pos_diag"):
+    with st.form("form_dados_pessoais_pos_diag", clear_on_submit=False):
         c1, c2 = st.columns(2)
 
         with c1:
@@ -659,7 +820,6 @@ if st.session_state.diagnostico_gerado:
         deseja_contato = st.checkbox(
             "Assinale esta opção se deseja que façamos contato para um diagnóstico mais completo.",
             value=False,
-            key="deseja_contato_comercial",
         )
 
         salvar_dados_pessoais = st.form_submit_button("Liberar chat com IA", use_container_width=True)
@@ -688,7 +848,7 @@ if st.session_state.diagnostico_gerado:
                     respostas=respostas,
                     medias_dim=medias_dim,
                 )
-                salvar_registro_csv(registro)  # salvamento interno
+                salvar_registro_csv(registro)
 
                 perfil_txt = montar_perfil_texto(
                     dados_inst.get("instituicao"),
@@ -704,10 +864,11 @@ if st.session_state.diagnostico_gerado:
                 st.session_state.registro_salvo = registro
 
                 st.success("Perfeito! Chat com IA liberado e dados salvos com sucesso.")
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
-# RESUMO EXECUTIVO
+# RESUMO EXECUTIVO (VISÍVEL NA TELA)
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
@@ -768,8 +929,120 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
 
 # -------------------
+# RELATÓRIO PRINT-ONLY (PDF BONITO)
+# -------------------
+if st.session_state.respondente_salvo and st.session_state.registro_salvo:
+    r = st.session_state.registro_salvo
+    medias_dim = st.session_state.medias_dimensao or {}
+
+    score_geral = r.get("score_geral", "")
+    nivel = r.get("nivel_maturidade", "")
+    data_relatorio = r.get("data_hora", "")
+    instituicao_txt = r.get("instituicao", "")
+    poder_txt = r.get("poder", "")
+    esfera_txt = r.get("esfera", "")
+    uf_txt = r.get("estado_uf", "")
+    respondente_txt = r.get("nome_respondente", "")
+    cargo_txt = r.get("cargo_funcao", "")
+    email_txt = r.get("email_respondente", "")
+    interesse = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
+
+    html_dim_cards = ""
+    for dim, media in medias_dim.items():
+        base = observatorio_means.get(dim, None)
+        if base is None:
+            continue
+
+        diff = round(media - base, 2)
+
+        if media < 1.5:
+            prioridade = "Prioridade alta"
+            recomendacao = "Estruturar fundamentos da agenda estratégica (cenários, objetivos, metas e planos de ação)."
+        elif media < 2.0:
+            prioridade = "Prioridade média"
+            recomendacao = "Fortalecer consistência e institucionalização das práticas estratégicas."
+        else:
+            prioridade = "Prioridade de consolidação"
+            recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
+
+        html_dim_cards += f"""
+        <div class="dim-card">
+            <strong>{dim}</strong>
+            <div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>
+            <div class="muted"><b>{prioridade}:</b> {recomendacao}</div>
+        </div>
+        """
+
+    st.markdown(
+        f"""
+        <div class="print-only">
+            <div class="report-wrap">
+                <div class="publix-band"></div>
+                <div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>
+                <div class="report-subtitle">
+                    Observatório de Governança para Resultados: Inteligência Artificial<br>
+                    Emitido em: {data_relatorio}
+                </div>
+
+                <div class="section-print-title">Identificação institucional</div>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="label">Instituição</div>
+                        <div class="value">{instituicao_txt}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Classificação</div>
+                        <div class="value">{poder_txt} | {esfera_txt} | {uf_txt}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Respondente</div>
+                        <div class="value">{respondente_txt}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Cargo / contato</div>
+                        <div class="value">{cargo_txt} | {email_txt}</div>
+                    </div>
+                </div>
+
+                <div class="section-print-title">Resultado geral</div>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="label">Score geral</div>
+                        <div class="value">{score_geral}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Nível de maturidade</div>
+                        <div class="value">{nivel}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">Interesse em contato</div>
+                        <div class="value">{interesse}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="label">ID do diagnóstico</div>
+                        <div class="value">{r.get("id_resposta","")}</div>
+                    </div>
+                </div>
+
+                <div class="section-print-title">Análise por dimensão</div>
+                {html_dim_cards}
+
+                <div class="section-print-title">Observações</div>
+                <div class="muted">
+                    Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados.
+                    As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# -------------------
 # ETAPA 4 — CHAT COM IA
 # -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
 st.subheader("4. Converse com a IA sobre o seu diagnóstico")
 
@@ -801,6 +1074,7 @@ else:
                 st.markdown(resposta)
 
         st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
@@ -850,6 +1124,7 @@ if st.session_state.respondente_salvo:
 # -------------------
 # RODAPÉ
 # -------------------
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
 <hr style="margin-top: 3rem; margin-bottom: 0.5rem;">
@@ -859,3 +1134,4 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+st.markdown('</div>', unsafe_allow_html=True)
