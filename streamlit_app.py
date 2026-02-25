@@ -17,24 +17,19 @@ st.set_page_config(page_title="Observatório de Governança para Resultados: IA"
 st.markdown(
     """
 <style>
-/* Remove sidebar */
 [data-testid="stSidebar"] { display: none !important; }
 
-/* Largura do conteúdo principal */
 .block-container {
     padding-top: 1.5rem !important;
     max-width: 1200px !important;
 }
 
-/* Espaçamento entre sliders */
 div[data-testid="stSlider"] { margin-bottom: 0.7rem !important; }
 
-/* Some menu do Streamlit */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
 
-/* Remove "Manage app" e similares */
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
@@ -44,7 +39,6 @@ div[data-testid="ManageAppButton"] {
     display: none !important;
 }
 
-/* Caixa de alerta nas cores Publix */
 div[data-testid="stAlert"] {
     background-color: #FFC728 !important;
     border-left: 6px solid #E0A600 !important;
@@ -52,11 +46,9 @@ div[data-testid="stAlert"] {
 }
 div[data-testid="stAlert"] * { color: #000000 !important; }
 
-/* Melhorar espaçamento dos títulos */
 h2 { margin-top: 1.2rem !important; margin-bottom: 0.4rem !important; }
 h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
 
-/* Cards visuais (resultado / PDF) */
 .result-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
@@ -74,7 +66,6 @@ h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
     font-size: 0.93rem;
 }
 
-/* Bloco de ações */
 .action-box {
     background: #fff8e1;
     border: 1px solid #f3d36c;
@@ -91,13 +82,11 @@ h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
         background: #fff !important;
     }
 
-    /* esconde elementos desnecessários no PDF */
     [data-testid="stChatInput"],
     .no-print,
     iframe,
     button,
     [role="button"],
-    [data-testid="stDownloadButton"],
     [data-testid="stForm"],
     [data-testid="stSlider"] {
         display: none !important;
@@ -154,8 +143,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 
 if not openai_api_key:
     st.error(
-        "OPENAI_API_KEY não encontrada. "
-        "No Render/Codespaces, configure em Environment Variables com o nome OPENAI_API_KEY."
+        "OPENAI_API_KEY não encontrada. Configure a variável de ambiente OPENAI_API_KEY."
     )
     st.stop()
 
@@ -163,7 +151,7 @@ openai.api_key = openai_api_key
 
 
 # -------------------
-# QUESTÕES (BASE COMPLETA)
+# QUESTÕES
 # -------------------
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidades e ameaças dos contextos internos e externos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
@@ -193,25 +181,14 @@ QUESTOES = [
     {"id": "1.7.2", "texto": "A organização participa da elaboração da agenda de desenvolvimento econômico, social, ambiental, político e outros temas relevantes para seu campo de atuação?", "dimensao": "Agenda Estratégica"},
     {"id": "1.7.3", "texto": "As políticas, programas e ações para o desenvolvimento econômico, social, ambiental e político consideram os planos da organização?", "dimensao": "Agenda Estratégica"},
 
-    # Demais dimensões mantidas na base original, mas serão filtradas abaixo
+    # Demais dimensões permanecem na base original (se quiser reaproveitar depois)
     {"id": "2.1.1", "texto": "A estrutura organizacional está formalizada?", "dimensao": "Alinhamento da Estrutura implementadora"},
-    {"id": "2.1.2", "texto": "A estrutura organizacional foi elaborada considerando o atingimento dos objetivos institucionais?", "dimensao": "Alinhamento da Estrutura implementadora"},
     {"id": "3.1.1", "texto": "Os arranjos de colaboração e coordenação institucional existentes na organização são aderentes ao mandato institucional?", "dimensao": "Monitoramento e Avaliação"},
-    {"id": "3.1.2", "texto": "Os arranjos existentes são aderentes aos processos de formulação, implementação, monitoramento e avaliação de políticas e programas?", "dimensao": "Monitoramento e Avaliação"},
 ]
 
-# -------------------
-# MANTER APENAS AGENDA ESTRATÉGICA
-# -------------------
+# Mantém apenas Agenda Estratégica
 QUESTOES = [q for q in QUESTOES if q["dimensao"] == "Agenda Estratégica"]
 
-
-VALORES_ESCALA = {
-    0: "0 - Inexistente",
-    1: "1 - Muito incipiente",
-    2: "2 - Parcialmente estruturado",
-    3: "3 - Bem estruturado",
-}
 
 observatorio_means = {
     "Agenda Estratégica": 1.92,
@@ -230,9 +207,6 @@ Base nacional do Observatório de Maturidade – resumo sintético
 
 3. Médias por dimensão
 - Agenda Estratégica: 1,92
-
-4. Padrão nacional por dimensão
-- Estratégia tende a ser o ponto mais forte dos órgãos públicos, mas ainda há fragilidades em cenários, metas, alinhamento e divulgação.
 """
 
 BASE_MEDIA_POR_PODER = {
@@ -258,9 +232,7 @@ BASE_MEDIA_POR_ESFERA = {
 # -------------------
 # TÍTULOS E SUBTÍTULOS
 # -------------------
-PART_TITLES = {
-    "1": "Agenda Estratégica",
-}
+PART_TITLES = {"1": "Agenda Estratégica"}
 
 SECTION_TITLES = {
     "1.1": "Compreensão do Ambiente Institucional",
@@ -385,7 +357,6 @@ Regras:
         {"role": "system", "content": "Diagnóstico estruturado da organização do usuário:"},
         {"role": "system", "content": perfil_texto},
     ]
-
     messages.extend(chat_history)
 
     try:
@@ -401,7 +372,7 @@ Regras:
 
 
 # -------------------
-# PERSISTÊNCIA (CSV)
+# PERSISTÊNCIA INTERNA (CSV NO SERVIDOR)
 # -------------------
 ARQUIVO_BASE_RESPONDENTES = Path("observatorio_respostas.csv")
 
@@ -441,6 +412,9 @@ def montar_registro_para_salvar(respondente: dict, respostas: dict, medias_dim: 
 
 
 def salvar_registro_csv(registro: dict):
+    """
+    Salva internamente no servidor. Não expõe exportação ao cliente.
+    """
     df_novo = pd.DataFrame([registro])
 
     if ARQUIVO_BASE_RESPONDENTES.exists():
@@ -458,48 +432,31 @@ def salvar_registro_csv(registro: dict):
     df_final.to_csv(ARQUIVO_BASE_RESPONDENTES, index=False, encoding="utf-8-sig")
 
 
-def carregar_base_respondentes():
-    if ARQUIVO_BASE_RESPONDENTES.exists():
-        try:
-            return pd.read_csv(ARQUIVO_BASE_RESPONDENTES)
-        except Exception:
-            return pd.DataFrame()
-    return pd.DataFrame()
-
-
 # -------------------
 # STATE
 # -------------------
 if "diagnostico_respostas" not in st.session_state:
     st.session_state.diagnostico_respostas = None
-
 if "diagnostico_perfil_texto" not in st.session_state:
     st.session_state.diagnostico_perfil_texto = None
-
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 if "respostas_dict" not in st.session_state:
     st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
-
 if "pagina_quest" not in st.session_state:
     st.session_state.pagina_quest = 1
-
 if "medias_dimensao" not in st.session_state:
     st.session_state.medias_dimensao = None
-
 if "diagnostico_gerado" not in st.session_state:
     st.session_state.diagnostico_gerado = False
-
 if "respondente_salvo" not in st.session_state:
     st.session_state.respondente_salvo = False
-
 if "registro_salvo" not in st.session_state:
     st.session_state.registro_salvo = None
 
 
 # -------------------
-# ETAPA 1 — DIAGNÓSTICO (SEM FORMULÁRIO DE RESPONDENTE NO TOPO)
+# ETAPA 1 — DIAGNÓSTICO
 # -------------------
 st.subheader("1. Preencha o diagnóstico da sua organização")
 st.caption("Responda cada afirmação em uma escala de 0 a 3.")
@@ -602,16 +559,6 @@ if gerar:
                 """,
                 unsafe_allow_html=True,
             )
-        else:
-            st.markdown(
-                f"""
-                <div class="result-card">
-                    <div class="result-card-title">{dim}</div>
-                    <div class="result-card-sub">Sua média: <strong>{media:.2f}</strong></div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
 
 # -------------------
@@ -628,41 +575,25 @@ if st.session_state.diagnostico_gerado:
             nome_respondente = st.text_input("Nome do respondente")
             email_respondente = st.text_input("E-mail")
             instituicao_pos = st.text_input("Instituição")
-
             poder_pos = st.selectbox(
                 "Poder",
-                [
-                    "",
-                    "Executivo",
-                    "Legislativo",
-                    "Judiciário",
-                    "Ministério Público",
-                    "Empresa pública",
-                    "Privado",
-                    "Organismo internacional",
-                    "Outro",
-                ],
+                ["", "Executivo", "Legislativo", "Judiciário", "Ministério Público", "Empresa pública", "Privado", "Organismo internacional", "Outro"],
                 key="poder_pos",
             )
 
         with c2:
             area_unidade = st.text_input("Área / Unidade")
             cargo_funcao = st.text_input("Cargo / Função")
-
             esfera_pos = st.selectbox(
                 "Esfera",
                 ["", "Federal", "Estadual", "Municipal", "Privado", "Não se aplica"],
                 key="esfera_pos",
             )
-
             estado_pos = st.selectbox(
                 "Estado (UF)",
-                [
-                    "",
-                    "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-                    "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-                    "RO", "RR", "RS", "SC", "SE", "SP", "TO"
-                ],
+                ["", "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+                 "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+                 "RO", "RR", "RS", "SC", "SE", "SP", "TO"],
                 key="estado_pos",
             )
 
@@ -678,10 +609,7 @@ if st.session_state.diagnostico_gerado:
             unsafe_allow_html=True
         )
 
-        salvar_identificacao = st.form_submit_button(
-            "Salvar identificação e liberar resultado final",
-            use_container_width=True
-        )
+        salvar_identificacao = st.form_submit_button("Salvar identificação e liberar resultado final", use_container_width=True)
 
         if salvar_identificacao:
             if not nome_respondente.strip():
@@ -708,32 +636,22 @@ if st.session_state.diagnostico_gerado:
                 respostas = st.session_state.diagnostico_respostas or {}
                 medias_dim = st.session_state.medias_dimensao or {}
 
-                registro = montar_registro_para_salvar(
-                    respondente=respondente,
-                    respostas=respostas,
-                    medias_dim=medias_dim,
-                )
-
-                salvar_registro_csv(registro)
+                registro = montar_registro_para_salvar(respondente, respostas, medias_dim)
+                salvar_registro_csv(registro)  # <-- SALVAMENTO INTERNO
 
                 perfil_txt = montar_perfil_texto(
-                    instituicao_pos,
-                    poder_pos,
-                    esfera_pos,
-                    estado_pos,
-                    respostas,
-                    medias_dim,
+                    instituicao_pos, poder_pos, esfera_pos, estado_pos, respostas, medias_dim
                 )
 
                 st.session_state.diagnostico_perfil_texto = perfil_txt
                 st.session_state.respondente_salvo = True
                 st.session_state.registro_salvo = registro
 
-                st.success("Dados salvos com sucesso! Chat e PDF liberados.")
+                st.success("Dados salvos com sucesso! Resultado, chat e PDF liberados.")
 
 
 # -------------------
-# BLOCO DE RESUMO EXECUTIVO (MELHOR PARA PDF)
+# RESUMO EXECUTIVO (MELHOR PARA PDF)
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
@@ -745,29 +663,20 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         f"""
         <div class="result-card">
             <div class="result-card-title">Instituição</div>
-            <div class="result-card-sub">
-                {r.get('instituicao','')} | {r.get('poder','')} | {r.get('esfera','')} | {r.get('estado_uf','')}
-            </div>
+            <div class="result-card-sub">{r.get('instituicao','')} | {r.get('poder','')} | {r.get('esfera','')} | {r.get('estado_uf','')}</div>
         </div>
         <div class="result-card">
             <div class="result-card-title">Respondente</div>
-            <div class="result-card-sub">
-                {r.get('nome_respondente','')} ({r.get('cargo_funcao','')}) — {r.get('email_respondente','')}
-            </div>
+            <div class="result-card-sub">{r.get('nome_respondente','')} ({r.get('cargo_funcao','')}) — {r.get('email_respondente','')}</div>
         </div>
         <div class="result-card">
             <div class="result-card-title">Resultado geral</div>
-            <div class="result-card-sub">
-                Score geral: <strong>{r.get('score_geral','')}</strong> |
-                Nível: <strong>{r.get('nivel_maturidade','')}</strong> |
-                ID do diagnóstico: <strong>{r.get('id_resposta','')}</strong>
-            </div>
+            <div class="result-card-sub">Score geral: <strong>{r.get('score_geral','')}</strong> | Nível: <strong>{r.get('nivel_maturidade','')}</strong> | ID do diagnóstico: <strong>{r.get('id_resposta','')}</strong></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Recomendações automáticas simples (rápidas) para aparecer no PDF
     medias_dim = st.session_state.medias_dimensao or {}
     for dim, media in medias_dim.items():
         base = observatorio_means.get(dim, None)
@@ -798,8 +707,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     st.markdown(
         """
         <div class="action-box">
-            <strong>Ações disponíveis:</strong> após salvar a identificação, você pode conversar com a IA sobre o diagnóstico
-            e gerar um PDF mais limpo usando o botão flutuante no canto inferior direito.
+            <strong>Próximos passos:</strong> você pode conversar com a IA sobre o diagnóstico e gerar um PDF usando o botão no canto inferior direito.
         </div>
         """,
         unsafe_allow_html=True,
@@ -827,10 +735,8 @@ else:
 
     if prompt:
         user_msg = {"role": "user", "content": prompt}
-
         with st.chat_message("user"):
             st.markdown(prompt)
-
         st.session_state.chat_history.append(user_msg)
 
         with st.chat_message("assistant"):
@@ -845,33 +751,7 @@ else:
 
 
 # -------------------
-# ETAPA 4 — EXPORTAÇÃO DA BASE
-# -------------------
-st.markdown("---")
-st.subheader("4. Exportação da base de respondentes")
-
-df_base = carregar_base_respondentes()
-
-if df_base.empty:
-    st.info("Ainda não há registros salvos para exportação.")
-else:
-    st.caption(f"Registros salvos: {len(df_base)}")
-
-    csv_bytes = df_base.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
-    st.download_button(
-        label="Baixar base de respondentes (CSV)",
-        data=csv_bytes,
-        file_name=f"observatorio_respostas_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
-
-    with st.expander("Visualizar últimos registros"):
-        st.dataframe(df_base.tail(20), use_container_width=True)
-
-
-# -------------------
-# BOTÃO FLUTUANTE DE PDF (SÓ APÓS SALVAR RESPONDENTE)
+# BOTÃO FLUTUANTE DE PDF (CLIENTE VÊ)
 # -------------------
 if st.session_state.respondente_salvo:
     components.html(
