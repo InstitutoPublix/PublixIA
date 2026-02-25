@@ -74,6 +74,14 @@ h3 { margin-top: 0.6rem !important; margin-bottom: 0.3rem !important; }
     margin: 8px 0 14px 0;
 }
 
+.form-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 10px;
+    padding: 14px;
+    background: #f8f8f8;
+    margin-bottom: 14px;
+}
+
 /* ---------- PRINT / PDF ---------- */
 @media print {
     body {
@@ -142,16 +150,14 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
 if not openai_api_key:
-    st.error(
-        "OPENAI_API_KEY não encontrada. Configure a variável de ambiente OPENAI_API_KEY."
-    )
+    st.error("OPENAI_API_KEY não encontrada. Configure a variável de ambiente OPENAI_API_KEY.")
     st.stop()
 
 openai.api_key = openai_api_key
 
 
 # -------------------
-# QUESTÕES
+# QUESTÕES (Agenda Estratégica)
 # -------------------
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidades e ameaças dos contextos internos e externos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
@@ -180,19 +186,9 @@ QUESTOES = [
     {"id": "1.7.1", "texto": "Os planos da organização são aderentes ao plano de governo e a planos de desenvolvimento nacionais, regionais, municipais e de outros atores?", "dimensao": "Agenda Estratégica"},
     {"id": "1.7.2", "texto": "A organização participa da elaboração da agenda de desenvolvimento econômico, social, ambiental, político e outros temas relevantes para seu campo de atuação?", "dimensao": "Agenda Estratégica"},
     {"id": "1.7.3", "texto": "As políticas, programas e ações para o desenvolvimento econômico, social, ambiental e político consideram os planos da organização?", "dimensao": "Agenda Estratégica"},
-
-    # Demais dimensões permanecem na base original (se quiser reaproveitar depois)
-    {"id": "2.1.1", "texto": "A estrutura organizacional está formalizada?", "dimensao": "Alinhamento da Estrutura implementadora"},
-    {"id": "3.1.1", "texto": "Os arranjos de colaboração e coordenação institucional existentes na organização são aderentes ao mandato institucional?", "dimensao": "Monitoramento e Avaliação"},
 ]
 
-# Mantém apenas Agenda Estratégica
-QUESTOES = [q for q in QUESTOES if q["dimensao"] == "Agenda Estratégica"]
-
-
-observatorio_means = {
-    "Agenda Estratégica": 1.92,
-}
+observatorio_means = {"Agenda Estratégica": 1.92}
 
 BASE_SINTETICA = """
 Base nacional do Observatório de Maturidade – resumo sintético
@@ -216,7 +212,7 @@ BASE_MEDIA_POR_PODER = {
     "legislativo": 1.73,
     "executivo": 1.57,
     "judiciário": 1.57,
-    "ministerio publico": 1.57,
+    "ministerio público": 1.57,
     "ministério público": 1.57,
 }
 
@@ -229,11 +225,7 @@ BASE_MEDIA_POR_ESFERA = {
 }
 
 
-# -------------------
-# TÍTULOS E SUBTÍTULOS
-# -------------------
 PART_TITLES = {"1": "Agenda Estratégica"}
-
 SECTION_TITLES = {
     "1.1": "Compreensão do Ambiente Institucional",
     "1.2": "Estabelecimento do Propósito",
@@ -300,13 +292,9 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     media_esfera_base = BASE_MEDIA_POR_ESFERA.get(esfera_norm) if esfera_norm else None
 
     if media_poder_base is not None:
-        linhas.append(
-            f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}."
-        )
+        linhas.append(f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}.")
     if media_esfera_base is not None:
-        linhas.append(
-            f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}."
-        )
+        linhas.append(f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}.")
     if media_poder_base is not None or media_esfera_base is not None:
         linhas.append("")
 
@@ -323,11 +311,8 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
                 situacao = "próximo da média da base"
 
             linhas.append(
-                f"- {dim}: {media_orgao:.2f} "
-                f"(média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
+                f"- {dim}: {media_orgao:.2f} (média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
             )
-        else:
-            linhas.append(f"- {dim}: {media_orgao:.2f} (sem comparativo na base)")
 
     linhas.append("")
     linhas.append("Notas detalhadas por questão:")
@@ -372,12 +357,12 @@ Regras:
 
 
 # -------------------
-# PERSISTÊNCIA INTERNA (CSV NO SERVIDOR)
+# PERSISTÊNCIA INTERNA
 # -------------------
 ARQUIVO_BASE_RESPONDENTES = Path("observatorio_respostas.csv")
 
 
-def montar_registro_para_salvar(respondente: dict, respostas: dict, medias_dim: dict):
+def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict, respostas: dict, medias_dim: dict):
     media_geral = round(sum(respostas.values()) / len(respostas), 2) if respostas else None
     nivel = classificar_nivel(media_geral) if media_geral is not None else None
 
@@ -387,16 +372,21 @@ def montar_registro_para_salvar(respondente: dict, respostas: dict, medias_dim: 
         "versao_instrumento": "agenda_estrategica_v1",
         "modulo": "Agenda Estratégica",
 
-        "nome_respondente": respondente.get("nome_respondente", ""),
-        "email_respondente": respondente.get("email_respondente", ""),
-        "instituicao": respondente.get("instituicao", ""),
-        "poder": respondente.get("poder", ""),
-        "esfera": respondente.get("esfera", ""),
-        "estado_uf": respondente.get("estado_uf", ""),
-        "area_unidade": respondente.get("area_unidade", ""),
-        "cargo_funcao": respondente.get("cargo_funcao", ""),
-        "consentimento_lgpd": respondente.get("consentimento_lgpd", False),
+        # dados institucionais (coletados ANTES)
+        "instituicao": dados_institucionais.get("instituicao", ""),
+        "poder": dados_institucionais.get("poder", ""),
+        "esfera": dados_institucionais.get("esfera", ""),
+        "estado_uf": dados_institucionais.get("estado_uf", ""),
+        "consentimento_uso_informacoes": dados_institucionais.get("consentimento_uso_informacoes", False),
 
+        # dados pessoais (coletados DEPOIS)
+        "nome_respondente": dados_pessoais.get("nome_respondente", ""),
+        "email_respondente": dados_pessoais.get("email_respondente", ""),
+        "area_unidade": dados_pessoais.get("area_unidade", ""),
+        "cargo_funcao": dados_pessoais.get("cargo_funcao", ""),
+        "deseja_contato_diagnostico_completo": dados_pessoais.get("deseja_contato_diagnostico_completo", False),
+
+        # scores
         "score_geral": media_geral,
         "nivel_maturidade": nivel,
     }
@@ -412,9 +402,6 @@ def montar_registro_para_salvar(respondente: dict, respostas: dict, medias_dim: 
 
 
 def salvar_registro_csv(registro: dict):
-    """
-    Salva internamente no servidor. Não expõe exportação ao cliente.
-    """
     df_novo = pd.DataFrame([registro])
 
     if ARQUIVO_BASE_RESPONDENTES.exists():
@@ -454,210 +441,281 @@ if "respondente_salvo" not in st.session_state:
 if "registro_salvo" not in st.session_state:
     st.session_state.registro_salvo = None
 
+# NOVOS STATES
+if "dados_institucionais" not in st.session_state:
+    st.session_state.dados_institucionais = None
+if "etapa1_ok" not in st.session_state:
+    st.session_state.etapa1_ok = False
+if "dados_pessoais" not in st.session_state:
+    st.session_state.dados_pessoais = None
+
 
 # -------------------
-# ETAPA 1 — DIAGNÓSTICO
+# ETAPA 1 — DADOS INSTITUCIONAIS (ANTES DO DIAGNÓSTICO)
 # -------------------
-st.subheader("1. Preencha o diagnóstico da sua organização")
-st.caption("Responda cada afirmação em uma escala de 0 a 3.")
+st.subheader("1. Dados institucionais e autorização")
 
-QUESTOES_POR_PAG = 10
-total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
+with st.form("form_dados_institucionais"):
+    c1, c2 = st.columns(2)
 
-pagina = st.session_state.pagina_quest
-inicio = (pagina - 1) * QUESTOES_POR_PAG
-fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
+    with c1:
+        instituicao = st.text_input("Instituição", value=st.session_state.get("instituicao_tmp", ""))
+        poder = st.selectbox(
+            "A qual poder sua instituição pertence?",
+            ["", "Executivo", "Legislativo", "Judiciário", "Ministério Público", "Empresa pública", "Privado", "Organismo internacional", "Outro"],
+            key="poder_institucional",
+        )
 
-st.write(f"Bloco {pagina} de {total_paginas}")
+    with c2:
+        esfera = st.selectbox(
+            "Esfera",
+            ["", "Federal", "Estadual", "Municipal", "Privado", "Não se aplica"],
+            key="esfera_institucional",
+        )
+        estado_uf = st.selectbox(
+            "Estado (UF)",
+            ["", "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+             "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+             "RO", "RR", "RS", "SC", "SE", "SP", "TO"],
+            key="estado_institucional",
+        )
 
-part_atual = None
-sec_atual = None
-
-for q in QUESTOES[inicio:fim]:
-    qid = q["id"]
-    part, sec = extrair_partes(qid)
-
-    if part != part_atual:
-        titulo = PART_TITLES.get(part, "")
-        st.markdown("---")
-        st.markdown(f"## {part}. {titulo}" if titulo else f"## {part}")
-        part_atual = part
-        sec_atual = None
-
-    if sec and sec != sec_atual:
-        subtitulo = SECTION_TITLES.get(sec, "")
-        st.markdown(f"### {sec}. {subtitulo}" if subtitulo else f"### {sec}")
-        sec_atual = sec
-
-    atual = st.session_state.respostas_dict.get(qid, 1)
-    novo_valor = st.slider(
-        label=f"{qid} — {q['texto']}",
-        min_value=0,
-        max_value=3,
-        value=atual,
-        step=1,
-        help="0 = Inexistente | 1 = Muito incipiente | 2 = Parcialmente estruturado | 3 = Bem estruturado",
-        key=f"slider_{qid}",
+    st.markdown("### Autorização de uso das informações")
+    autorizacao_uso = st.checkbox(
+        "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
+        value=False,
+        key="autorizacao_uso_etapa1",
     )
-    st.session_state.respostas_dict[qid] = novo_valor
 
-col1, col2, col3 = st.columns([1, 1, 2])
-
-def ir_anterior():
-    if st.session_state.pagina_quest > 1:
-        st.session_state.pagina_quest -= 1
-
-def ir_proximo():
-    if st.session_state.pagina_quest < total_paginas:
-        st.session_state.pagina_quest += 1
-
-with col1:
-    st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
-
-with col2:
-    st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
-
-with col3:
-    ultimo_bloco = (pagina == total_paginas)
-    gerar = st.button(
-        "Gerar diagnóstico",
-        key="btn_gerar",
-        use_container_width=True,
-        disabled=not ultimo_bloco,
+    st.markdown(
+        "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
+        unsafe_allow_html=True
     )
-    if not ultimo_bloco:
-        st.caption("Finalize todos os blocos para habilitar o diagnóstico.")
 
-if gerar:
-    respostas = st.session_state.respostas_dict.copy()
-    st.session_state.diagnostico_respostas = respostas
+    confirmar_etapa1 = st.form_submit_button("Continuar para o diagnóstico", use_container_width=True)
 
-    medias_dim = calcular_medias_por_dimensao(respostas)
-    st.session_state.medias_dimensao = medias_dim
+    if confirmar_etapa1:
+        if not instituicao.strip():
+            st.error("Preencha a instituição.")
+        elif not poder.strip():
+            st.error("Selecione o poder.")
+        elif not esfera.strip():
+            st.error("Selecione a esfera.")
+        elif not estado_uf.strip():
+            st.error("Selecione o Estado (UF).")
+        elif not autorizacao_uso:
+            st.error("É necessário autorizar o uso das informações para continuar.")
+        else:
+            st.session_state.dados_institucionais = {
+                "instituicao": instituicao.strip(),
+                "poder": poder,
+                "esfera": esfera,
+                "estado_uf": estado_uf,
+                "consentimento_uso_informacoes": autorizacao_uso,
+            }
+            st.session_state.etapa1_ok = True
+            st.success("Dados institucionais salvos. Agora preencha a Agenda Estratégica.")
 
-    st.session_state.diagnostico_gerado = True
-    st.session_state.respondente_salvo = False
-    st.session_state.diagnostico_perfil_texto = None
-    st.session_state.registro_salvo = None
-    st.session_state.chat_history = []
 
-    st.success("Diagnóstico gerado! Agora preencha os dados do respondente para salvar e liberar o resultado completo.")
+# -------------------
+# ETAPA 2 — DIAGNÓSTICO (AGENDA ESTRATÉGICA)
+# -------------------
+st.markdown("---")
+st.subheader("2. Agenda Estratégica")
 
-    st.write("### Resumo do diagnóstico (por dimensão)")
-    for dim, media in medias_dim.items():
-        base = observatorio_means.get(dim)
-        if base is not None:
-            diff = round(media - base, 2)
-            st.markdown(
-                f"""
-                <div class="result-card">
-                    <div class="result-card-title">{dim}</div>
-                    <div class="result-card-sub">
-                        Sua média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong>
+if not st.session_state.etapa1_ok:
+    st.info("Preencha os dados institucionais e a autorização acima para liberar o diagnóstico.")
+else:
+    st.caption("Responda cada afirmação em uma escala de 0 a 3.")
+
+    QUESTOES_POR_PAG = 10
+    total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
+
+    pagina = st.session_state.pagina_quest
+    inicio = (pagina - 1) * QUESTOES_POR_PAG
+    fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
+
+    st.write(f"Bloco {pagina} de {total_paginas}")
+
+    part_atual = None
+    sec_atual = None
+
+    for q in QUESTOES[inicio:fim]:
+        qid = q["id"]
+        part, sec = extrair_partes(qid)
+
+        if part != part_atual:
+            titulo = PART_TITLES.get(part, "")
+            st.markdown("---")
+            st.markdown(f"## {part}. {titulo}" if titulo else f"## {part}")
+            part_atual = part
+            sec_atual = None
+
+        if sec and sec != sec_atual:
+            subtitulo = SECTION_TITLES.get(sec, "")
+            st.markdown(f"### {sec}. {subtitulo}" if subtitulo else f"### {sec}")
+            sec_atual = sec
+
+        atual = st.session_state.respostas_dict.get(qid, 1)
+        novo_valor = st.slider(
+            label=f"{qid} — {q['texto']}",
+            min_value=0,
+            max_value=3,
+            value=atual,
+            step=1,
+            help="0 = Inexistente | 1 = Muito incipiente | 2 = Parcialmente estruturado | 3 = Bem estruturado",
+            key=f"slider_{qid}",
+        )
+        st.session_state.respostas_dict[qid] = novo_valor
+
+    col1, col2, col3 = st.columns([1, 1, 2])
+
+    def ir_anterior():
+        if st.session_state.pagina_quest > 1:
+            st.session_state.pagina_quest -= 1
+
+    def ir_proximo():
+        if st.session_state.pagina_quest < total_paginas:
+            st.session_state.pagina_quest += 1
+
+    with col1:
+        st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
+
+    with col2:
+        st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
+
+    with col3:
+        ultimo_bloco = (pagina == total_paginas)
+        gerar = st.button(
+            "Gerar diagnóstico",
+            key="btn_gerar",
+            use_container_width=True,
+            disabled=not ultimo_bloco,
+        )
+        if not ultimo_bloco:
+            st.caption("Finalize todos os blocos para habilitar o diagnóstico.")
+
+    if gerar:
+        respostas = st.session_state.respostas_dict.copy()
+        st.session_state.diagnostico_respostas = respostas
+
+        medias_dim = calcular_medias_por_dimensao(respostas)
+        st.session_state.medias_dimensao = medias_dim
+
+        st.session_state.diagnostico_gerado = True
+        st.session_state.respondente_salvo = False
+        st.session_state.diagnostico_perfil_texto = None
+        st.session_state.registro_salvo = None
+        st.session_state.chat_history = []
+        st.session_state.dados_pessoais = None
+
+        st.success("Diagnóstico gerado com sucesso!")
+
+        st.write("### Resumo do diagnóstico (por dimensão)")
+        for dim, media in medias_dim.items():
+            base = observatorio_means.get(dim)
+            if base is not None:
+                diff = round(media - base, 2)
+                st.markdown(
+                    f"""
+                    <div class="result-card">
+                        <div class="result-card-title">{dim}</div>
+                        <div class="result-card-sub">
+                            Sua média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong>
+                        </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
 
 
 # -------------------
-# ETAPA 2 — IDENTIFICAÇÃO DO RESPONDENTE (PÓS-DIAGNÓSTICO)
+# ETAPA 3 — DADOS PESSOAIS (PÓS-DIAGNÓSTICO, PARA IA)
 # -------------------
 if st.session_state.diagnostico_gerado:
     st.markdown("---")
-    st.subheader("2. Identificação do respondente e autorização")
+    st.subheader("3. Liberação da IA especialista")
 
-    with st.form("form_respondente_pos_diag"):
+    st.markdown(
+        """
+<div class="action-box">
+<strong>Para conversar com a IA especialista sobre a sua organização, informe os dados abaixo:</strong>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    with st.form("form_dados_pessoais_pos_diag"):
         c1, c2 = st.columns(2)
 
         with c1:
-            nome_respondente = st.text_input("Nome do respondente")
+            nome_respondente = st.text_input("Nome")
             email_respondente = st.text_input("E-mail")
-            instituicao_pos = st.text_input("Instituição")
-            poder_pos = st.selectbox(
-                "Poder",
-                ["", "Executivo", "Legislativo", "Judiciário", "Ministério Público", "Empresa pública", "Privado", "Organismo internacional", "Outro"],
-                key="poder_pos",
-            )
 
         with c2:
             area_unidade = st.text_input("Área / Unidade")
             cargo_funcao = st.text_input("Cargo / Função")
-            esfera_pos = st.selectbox(
-                "Esfera",
-                ["", "Federal", "Estadual", "Municipal", "Privado", "Não se aplica"],
-                key="esfera_pos",
-            )
-            estado_pos = st.selectbox(
-                "Estado (UF)",
-                ["", "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-                 "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-                 "RO", "RR", "RS", "SC", "SE", "SP", "TO"],
-                key="estado_pos",
-            )
 
-        st.markdown("### Autorização de uso das informações")
-        consentimento_lgpd = st.checkbox(
-            "Autorizo o uso das informações inseridas neste diagnóstico para fins de análise, consolidação estatística e aperfeiçoamento do Observatório de Governança para Resultados.",
+        deseja_contato = st.checkbox(
+            "Assinale esta opção se deseja que façamos contato para um diagnóstico mais completo.",
             value=False,
-            key="consent_pos",
+            key="deseja_contato_comercial",
         )
 
-        st.markdown(
-            "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
-            unsafe_allow_html=True
-        )
+        salvar_dados_pessoais = st.form_submit_button("Liberar chat com IA", use_container_width=True)
 
-        salvar_identificacao = st.form_submit_button("Salvar identificação e liberar resultado final", use_container_width=True)
-
-        if salvar_identificacao:
+        if salvar_dados_pessoais:
             if not nome_respondente.strip():
-                st.error("Preencha o nome do respondente.")
+                st.error("Preencha seu nome.")
             elif not email_respondente.strip():
-                st.error("Preencha o e-mail do respondente.")
-            elif not instituicao_pos.strip():
-                st.error("Preencha a instituição.")
-            elif not consentimento_lgpd:
-                st.error("É necessário autorizar o uso das informações para salvar o diagnóstico.")
+                st.error("Preencha seu e-mail.")
             else:
-                respondente = {
+                st.session_state.dados_pessoais = {
                     "nome_respondente": nome_respondente.strip(),
                     "email_respondente": email_respondente.strip(),
-                    "instituicao": instituicao_pos.strip(),
-                    "poder": poder_pos,
-                    "esfera": esfera_pos,
-                    "estado_uf": estado_pos,
                     "area_unidade": area_unidade.strip(),
                     "cargo_funcao": cargo_funcao.strip(),
-                    "consentimento_lgpd": consentimento_lgpd,
+                    "deseja_contato_diagnostico_completo": deseja_contato,
                 }
 
+                dados_inst = st.session_state.dados_institucionais or {}
                 respostas = st.session_state.diagnostico_respostas or {}
                 medias_dim = st.session_state.medias_dimensao or {}
 
-                registro = montar_registro_para_salvar(respondente, respostas, medias_dim)
-                salvar_registro_csv(registro)  # <-- SALVAMENTO INTERNO
+                registro = montar_registro_para_salvar(
+                    dados_institucionais=dados_inst,
+                    dados_pessoais=st.session_state.dados_pessoais,
+                    respostas=respostas,
+                    medias_dim=medias_dim,
+                )
+                salvar_registro_csv(registro)  # salvamento interno
 
                 perfil_txt = montar_perfil_texto(
-                    instituicao_pos, poder_pos, esfera_pos, estado_pos, respostas, medias_dim
+                    dados_inst.get("instituicao"),
+                    dados_inst.get("poder"),
+                    dados_inst.get("esfera"),
+                    dados_inst.get("estado_uf"),
+                    respostas,
+                    medias_dim,
                 )
 
                 st.session_state.diagnostico_perfil_texto = perfil_txt
                 st.session_state.respondente_salvo = True
                 st.session_state.registro_salvo = registro
 
-                st.success("Dados salvos com sucesso! Resultado, chat e PDF liberados.")
+                st.success("Perfeito! Chat com IA liberado e dados salvos com sucesso.")
 
 
 # -------------------
-# RESUMO EXECUTIVO (MELHOR PARA PDF)
+# RESUMO EXECUTIVO
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
 
     st.markdown("---")
     st.subheader("Resumo executivo do diagnóstico")
+
+    contato_msg = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
 
     st.markdown(
         f"""
@@ -668,6 +726,10 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         <div class="result-card">
             <div class="result-card-title">Respondente</div>
             <div class="result-card-sub">{r.get('nome_respondente','')} ({r.get('cargo_funcao','')}) — {r.get('email_respondente','')}</div>
+        </div>
+        <div class="result-card">
+            <div class="result-card-title">Interesse em contato</div>
+            <div class="result-card-sub">Deseja contato para diagnóstico mais completo: <strong>{contato_msg}</strong></div>
         </div>
         <div class="result-card">
             <div class="result-card-title">Resultado geral</div>
@@ -704,24 +766,15 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             unsafe_allow_html=True,
         )
 
-    st.markdown(
-        """
-        <div class="action-box">
-            <strong>Próximos passos:</strong> você pode conversar com a IA sobre o diagnóstico e gerar um PDF usando o botão no canto inferior direito.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 
 # -------------------
-# ETAPA 3 — CHAT COM IA
+# ETAPA 4 — CHAT COM IA
 # -------------------
 st.markdown("---")
-st.subheader("3. Converse com a IA sobre o seu diagnóstico")
+st.subheader("4. Converse com a IA sobre o seu diagnóstico")
 
 if not st.session_state.respondente_salvo or st.session_state.diagnostico_perfil_texto is None:
-    st.info("Gere o diagnóstico e salve a identificação do respondente para habilitar o chat.")
+    st.info("Gere o diagnóstico e preencha os dados de liberação da IA para habilitar o chat.")
 else:
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
@@ -751,7 +804,7 @@ else:
 
 
 # -------------------
-# BOTÃO FLUTUANTE DE PDF (CLIENTE VÊ)
+# BOTÃO FLUTUANTE PDF
 # -------------------
 if st.session_state.respondente_salvo:
     components.html(
