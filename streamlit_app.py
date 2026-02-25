@@ -5,9 +5,9 @@ import openai
 import streamlit.components.v1 as components
 import os
 import uuid
+import html
 from datetime import datetime
 from pathlib import Path
-import textwrap
 
 
 # -------------------
@@ -779,7 +779,7 @@ else:
                 st.markdown(
                     f"""
                     <div class="result-card">
-                        <div class="result-card-title">{dim}</div>
+                        <div class="result-card-title">{html.escape(dim)}</div>
                         <div class="result-card-sub">
                             Sua média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong>
                         </div>
@@ -883,11 +883,11 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         f"""
         <div class="result-card">
             <div class="result-card-title">Instituição</div>
-            <div class="result-card-sub">{r.get('instituicao','')} | {r.get('poder','')} | {r.get('esfera','')} | {r.get('estado_uf','')}</div>
+            <div class="result-card-sub">{html.escape(str(r.get('instituicao','')))} | {html.escape(str(r.get('poder','')))} | {html.escape(str(r.get('esfera','')))} | {html.escape(str(r.get('estado_uf','')))}</div>
         </div>
         <div class="result-card">
             <div class="result-card-title">Respondente</div>
-            <div class="result-card-sub">{r.get('nome_respondente','')} ({r.get('cargo_funcao','')}) — {r.get('email_respondente','')}</div>
+            <div class="result-card-sub">{html.escape(str(r.get('nome_respondente','')))} ({html.escape(str(r.get('cargo_funcao','')))}) — {html.escape(str(r.get('email_respondente','')))}</div>
         </div>
         <div class="result-card">
             <div class="result-card-title">Interesse em contato</div>
@@ -895,7 +895,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         </div>
         <div class="result-card">
             <div class="result-card-title">Resultado geral</div>
-            <div class="result-card-sub">Score geral: <strong>{r.get('score_geral','')}</strong> | Nível: <strong>{r.get('nivel_maturidade','')}</strong> | ID do diagnóstico: <strong>{r.get('id_resposta','')}</strong></div>
+            <div class="result-card-sub">Score geral: <strong>{html.escape(str(r.get('score_geral','')))}</strong> | Nível: <strong>{html.escape(str(r.get('nivel_maturidade','')))}</strong> | ID do diagnóstico: <strong>{html.escape(str(r.get('id_resposta','')))}</strong></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -918,10 +918,10 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         st.markdown(
             f"""
             <div class="result-card">
-                <div class="result-card-title">{dim} — interpretação rápida</div>
+                <div class="result-card-title">{html.escape(dim)} — interpretação rápida</div>
                 <div class="result-card-sub">
                     Média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong><br>
-                    {mensagem}
+                    {html.escape(mensagem)}
                 </div>
             </div>
             """,
@@ -936,19 +936,20 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
     medias_dim = st.session_state.medias_dimensao or {}
 
-    score_geral = r.get("score_geral", "")
-    nivel = r.get("nivel_maturidade", "")
-    data_relatorio = r.get("data_hora", "")
-    instituicao_txt = r.get("instituicao", "")
-    poder_txt = r.get("poder", "")
-    esfera_txt = r.get("esfera", "")
-    uf_txt = r.get("estado_uf", "")
-    respondente_txt = r.get("nome_respondente", "")
-    cargo_txt = r.get("cargo_funcao", "")
-    email_txt = r.get("email_respondente", "")
+    score_geral = html.escape(str(r.get("score_geral", "")))
+    nivel = html.escape(str(r.get("nivel_maturidade", "")))
+    data_relatorio = html.escape(str(r.get("data_hora", "")))
+    instituicao_txt = html.escape(str(r.get("instituicao", "")))
+    poder_txt = html.escape(str(r.get("poder", "")))
+    esfera_txt = html.escape(str(r.get("esfera", "")))
+    uf_txt = html.escape(str(r.get("estado_uf", "")))
+    respondente_txt = html.escape(str(r.get("nome_respondente", "")))
+    cargo_txt = html.escape(str(r.get("cargo_funcao", "")))
+    email_txt = html.escape(str(r.get("email_respondente", "")))
+    diag_id_txt = html.escape(str(r.get("id_resposta", "")))
     interesse = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
 
-    html_dim_cards = ""
+    cards_html_list = []
     for dim, media in medias_dim.items():
         base = observatorio_means.get(dim, None)
         if base is None:
@@ -966,77 +967,55 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             prioridade = "Prioridade de consolidação"
             recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
 
-        html_dim_cards += textwrap.dedent(f"""
-<div class="dim-card">
-    <strong>{dim}</strong>
-    <div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>
-    <div class="muted"><b>{prioridade}:</b> {recomendacao}</div>
-</div>
-""")
+        cards_html_list.append(
+            f'<div class="dim-card">'
+            f'<strong>{html.escape(dim)}</strong>'
+            f'<div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>'
+            f'<div class="muted"><b>{html.escape(prioridade)}:</b> {html.escape(recomendacao)}</div>'
+            f'</div>'
+        )
 
-    html_relatorio = f"""
-<div class="print-only">
-    <div class="report-wrap">
-        <div class="publix-band"></div>
-        <div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>
-        <div class="report-subtitle">
-            Observatório de Governança para Resultados: Inteligência Artificial<br>
-            Emitido em: {data_relatorio}
-        </div>
+    html_dim_cards = "".join(cards_html_list)
 
-        <div class="section-print-title">Identificação institucional</div>
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="label">Instituição</div>
-                <div class="value">{instituicao_txt}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">Classificação</div>
-                <div class="value">{poder_txt} | {esfera_txt} | {uf_txt}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">Respondente</div>
-                <div class="value">{respondente_txt}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">Cargo / contato</div>
-                <div class="value">{cargo_txt} | {email_txt}</div>
-            </div>
-        </div>
+    html_relatorio = (
+        '<div class="print-only">'
+        '<div class="report-wrap">'
+        '<div class="publix-band"></div>'
+        '<div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>'
+        f'<div class="report-subtitle">Observatório de Governança para Resultados: Inteligência Artificial<br>Emitido em: {data_relatorio}</div>'
 
-        <div class="section-print-title">Resultado geral</div>
-        <div class="kpi-grid">
-            <div class="kpi-card">
-                <div class="label">Score geral</div>
-                <div class="value">{score_geral}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">Nível de maturidade</div>
-                <div class="value">{nivel}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">Interesse em contato</div>
-                <div class="value">{interesse}</div>
-            </div>
-            <div class="kpi-card">
-                <div class="label">ID do diagnóstico</div>
-                <div class="value">{r.get("id_resposta","")}</div>
-            </div>
-        </div>
+        '<div class="section-print-title">Identificação institucional</div>'
+        '<div class="kpi-grid">'
+        '<div class="kpi-card"><div class="label">Instituição</div><div class="value">' + instituicao_txt + '</div></div>'
+        '<div class="kpi-card"><div class="label">Classificação</div><div class="value">' + poder_txt + ' | ' + esfera_txt + ' | ' + uf_txt + '</div></div>'
+        '<div class="kpi-card"><div class="label">Respondente</div><div class="value">' + respondente_txt + '</div></div>'
+        '<div class="kpi-card"><div class="label">Cargo / contato</div><div class="value">' + cargo_txt + ' | ' + email_txt + '</div></div>'
+        '</div>'
 
-        <div class="section-print-title">Análise por dimensão</div>
-        {html_dim_cards}
+        '<div class="section-print-title">Resultado geral</div>'
+        '<div class="kpi-grid">'
+        '<div class="kpi-card"><div class="label">Score geral</div><div class="value">' + score_geral + '</div></div>'
+        '<div class="kpi-card"><div class="label">Nível de maturidade</div><div class="value">' + nivel + '</div></div>'
+        '<div class="kpi-card"><div class="label">Interesse em contato</div><div class="value">' + interesse + '</div></div>'
+        '<div class="kpi-card"><div class="label">ID do diagnóstico</div><div class="value">' + diag_id_txt + '</div></div>'
+        '</div>'
 
-        <div class="section-print-title">Observações</div>
-        <div class="muted">
-            Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados.
-            As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.
-        </div>
-    </div>
-</div>
-"""
+        '<div class="section-print-title">Análise por dimensão</div>'
+        + html_dim_cards +
 
-    st.markdown(textwrap.dedent(html_relatorio), unsafe_allow_html=True)
+        '<div class="section-print-title">Observações</div>'
+        '<div class="muted">'
+        'Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados. '
+        'As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.'
+        '</div>'
+
+        '</div>'
+        '</div>'
+    )
+
+    st.markdown(html_relatorio, unsafe_allow_html=True)
+
+
 # -------------------
 # ETAPA 4 — CHAT COM IA
 # -------------------
