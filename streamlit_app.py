@@ -929,7 +929,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
 
 # -------------------
-# RELATÓRIO PRINT-ONLY (PDF BONITO)
+# RELATÓRIO PRINT-ONLY (PDF BONITO) - CORRIGIDO
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
@@ -966,79 +966,76 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
 
         html_dim_cards += f"""
-        <div class="dim-card">
-            <strong>{dim}</strong>
-            <div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>
-            <div class="muted"><b>{prioridade}:</b> {recomendacao}</div>
+<div class="dim-card">
+    <strong>{dim}</strong>
+    <div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>
+    <div class="muted"><b>{prioridade}:</b> {recomendacao}</div>
+</div>
+"""
+
+    html_relatorio = f"""
+<div class="print-only">
+    <div class="report-wrap">
+        <div class="publix-band"></div>
+        <div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>
+        <div class="report-subtitle">
+            Observatório de Governança para Resultados: Inteligência Artificial<br>
+            Emitido em: {data_relatorio}
         </div>
-        """
 
-    st.markdown(
-        f"""
-        <div class="print-only">
-            <div class="report-wrap">
-                <div class="publix-band"></div>
-                <div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>
-                <div class="report-subtitle">
-                    Observatório de Governança para Resultados: Inteligência Artificial<br>
-                    Emitido em: {data_relatorio}
-                </div>
-
-                <div class="section-print-title">Identificação institucional</div>
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="label">Instituição</div>
-                        <div class="value">{instituicao_txt}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">Classificação</div>
-                        <div class="value">{poder_txt} | {esfera_txt} | {uf_txt}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">Respondente</div>
-                        <div class="value">{respondente_txt}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">Cargo / contato</div>
-                        <div class="value">{cargo_txt} | {email_txt}</div>
-                    </div>
-                </div>
-
-                <div class="section-print-title">Resultado geral</div>
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="label">Score geral</div>
-                        <div class="value">{score_geral}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">Nível de maturidade</div>
-                        <div class="value">{nivel}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">Interesse em contato</div>
-                        <div class="value">{interesse}</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="label">ID do diagnóstico</div>
-                        <div class="value">{r.get("id_resposta","")}</div>
-                    </div>
-                </div>
-
-                <div class="section-print-title">Análise por dimensão</div>
-                {html_dim_cards}
-
-                <div class="section-print-title">Observações</div>
-                <div class="muted">
-                    Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados.
-                    As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.
-                </div>
+        <div class="section-print-title">Identificação institucional</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="label">Instituição</div>
+                <div class="value">{instituicao_txt}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">Classificação</div>
+                <div class="value">{poder_txt} | {esfera_txt} | {uf_txt}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">Respondente</div>
+                <div class="value">{respondente_txt}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">Cargo / contato</div>
+                <div class="value">{cargo_txt} | {email_txt}</div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
+        <div class="section-print-title">Resultado geral</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="label">Score geral</div>
+                <div class="value">{score_geral}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">Nível de maturidade</div>
+                <div class="value">{nivel}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">Interesse em contato</div>
+                <div class="value">{interesse}</div>
+            </div>
+            <div class="kpi-card">
+                <div class="label">ID do diagnóstico</div>
+                <div class="value">{r.get("id_resposta","")}</div>
+            </div>
+        </div>
 
+        <div class="section-print-title">Análise por dimensão</div>
+        {html_dim_cards}
+
+        <div class="section-print-title">Observações</div>
+        <div class="muted">
+            Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados.
+            As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.
+        </div>
+    </div>
+</div>
+"""
+
+    st.markdown(html_relatorio, unsafe_allow_html=True)
 # -------------------
 # ETAPA 4 — CHAT COM IA
 # -------------------
