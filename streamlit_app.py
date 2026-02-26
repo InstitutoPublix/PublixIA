@@ -1158,10 +1158,9 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         '</div>'
 
         '<div class="section-print-title">Resultado geral</div>'
-        '<div class="kpi-grid">'
+        '<div class="kpi-grid" style="grid-template-columns: 1fr 1fr 1fr;">'
         '<div class="kpi-card"><div class="label">Score geral</div><div class="value">' + score_geral + '</div></div>'
         '<div class="kpi-card"><div class="label">Nível de maturidade</div><div class="value">' + nivel + '</div></div>'
-        '<div class="kpi-card"><div class="label">Interesse em contato</div><div class="value">' + interesse + '</div></div>'
         '<div class="kpi-card"><div class="label">ID do diagnóstico</div><div class="value">' + diag_id_txt + '</div></div>'
         '</div>'
 
@@ -1170,12 +1169,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
         '<div class="section-print-title">Análise por dimensão</div>'
         + html_dim_cards +
-
-        '<div class="section-print-title">Observações</div>'
-        '<div class="muted">'
-        'Este relatório sintetiza o diagnóstico de Agenda Estratégica realizado no Observatório de Governança para Resultados. '
-        'As informações individuais são tratadas conforme autorização do respondente e utilizadas para fins de análise agregada e aperfeiçoamento do instrumento.'
-        '</div>'
 
         '</div>'
         '</div>'
