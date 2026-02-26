@@ -9,17 +9,50 @@ import html
 import base64
 from datetime import datetime
 from pathlib import Path
-
+import gspread
+from google.oauth2.service_account import Credentials
 
 # -------------------
 # CONFIG GERAIS
 # -------------------
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+SHEET_NAME = "Observatório - Respostas"   # nome EXATO da sua planilha
+WORKSHEET_NAME = "respostas"              # nome EXATO da sua aba
+
 st.set_page_config(
     page_title="Observatório de Governança para Resultados: IA",
     layout="centered"
 )
 
 LOGO_PATH = Path("publix_logo.png")  # coloque aqui o logo do Publix (PNG preferencialmente)
+
+
+@st.cache_resource
+def conectar_google_sheets():
+    creds = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=SCOPES
+    )
+    client = gspread.authorize(creds)
+    planilha = client.open(SHEET_NAME)
+    aba = planilha.worksheet(WORKSHEET_NAME)
+    return aba
+
+
+def garantir_cabecalho(aba, registro: dict):
+    valores = aba.get_all_values()
+    if not valores:
+        aba.append_row(list(registro.keys()), value_input_option="USER_ENTERED")
+
+
+def salvar_registro_google_sheets(registro: dict):
+    aba = conectar_google_sheets()
+    garantir_cabecalho(aba, registro)
+    aba.append_row(list(registro.values()), value_input_option="USER_ENTERED")
 
 
 def file_to_base64(path: Path):
@@ -393,10 +426,11 @@ st.markdown('</div>', unsafe_allow_html=True)
 # -------------------
 # API KEY
 # -------------------
-openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 if not openai_api_key:
-    st.error("OPENAI_API_KEY não encontrada. Configure a variável de ambiente OPENAI_API_KEY.")
+    st.error("OPENAI_API_KEY não encontrada. Configure em Secrets do Streamlit ou na variável de ambiente.")
     st.stop()
+
 openai.api_key = openai_api_key
 
 
@@ -607,11 +641,8 @@ Regras:
 
 
 # -------------------
-# PERSISTÊNCIA INTERNA
+# PERSISTÊNCIA
 # -------------------
-ARQUIVO_BASE_RESPONDENTES = Path("observatorio_respostas.csv")
-
-
 def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict, respostas: dict, medias_dim: dict):
     media_geral = round(sum(respostas.values()) / len(respostas), 2) if respostas else None
     nivel = classificar_nivel(media_geral) if media_geral is not None else None
@@ -654,24 +685,6 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
         registro[f"q_{qid.replace('.', '_')}"] = nota
 
     return registro
-
-
-def salvar_registro_csv(registro: dict):
-    df_novo = pd.DataFrame([registro])
-
-    if ARQUIVO_BASE_RESPONDENTES.exists():
-        try:
-            df_existente = pd.read_csv(ARQUIVO_BASE_RESPONDENTES)
-            cols = list(dict.fromkeys(list(df_existente.columns) + list(df_novo.columns)))
-            df_existente = df_existente.reindex(columns=cols)
-            df_novo = df_novo.reindex(columns=cols)
-            df_final = pd.concat([df_existente, df_novo], ignore_index=True)
-        except Exception:
-            df_final = df_novo
-    else:
-        df_final = df_novo
-
-    df_final.to_csv(ARQUIVO_BASE_RESPONDENTES, index=False, encoding="utf-8-sig")
 
 
 # -------------------
@@ -951,7 +964,12 @@ if st.session_state.diagnostico_gerado:
                     respostas=respostas,
                     medias_dim=medias_dim,
                 )
-                salvar_registro_csv(registro)
+
+                try:
+                    salvar_registro_google_sheets(registro)
+                except Exception as e:
+                    st.error(f"Erro ao salvar no Google Sheets: {e}")
+                    st.stop()
 
                 perfil_txt = montar_perfil_texto(
                     dados_inst.get("instituicao"),
@@ -1054,7 +1072,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     cargo_txt = html.escape(str(r.get("cargo_funcao", "")))
     email_txt = html.escape(str(r.get("email_respondente", "")))
     diag_id_txt = html.escape(str(r.get("id_resposta", "")))
-    interesse = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
 
     score_pct = max(0, min((score_geral_raw / 3) * 100, 100))
 
@@ -1100,17 +1117,14 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             f'<div class="dim-card">'
             f'<strong>{html.escape(dim)}</strong>'
             f'<div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>'
-
             f'<div class="compare-row">'
             f'<div class="compare-label">Organização</div>'
             f'<div class="compare-track"><div class="compare-fill-org" style="width:{org_pct:.1f}%;"></div></div>'
             f'</div>'
-
             f'<div class="compare-row">'
             f'<div class="compare-label">Base nacional</div>'
             f'<div class="compare-track"><div class="compare-fill-base" style="width:{base_pct:.1f}%;"></div></div>'
             f'</div>'
-
             f'<div class="muted" style="margin-top:6px;"><b>{html.escape(prioridade)}:</b> {html.escape(recomendacao)}</div>'
             f'</div>'
         )
