@@ -6,6 +6,7 @@ import streamlit.components.v1 as components
 import os
 import uuid
 import html
+import base64
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +18,19 @@ st.set_page_config(
     page_title="Observatório de Governança para Resultados: IA",
     layout="centered"
 )
+
+LOGO_PATH = Path("publix_logo.png")  # coloque aqui o logo do Publix (PNG preferencialmente)
+
+
+def file_to_base64(path: Path):
+    if not path.exists():
+        return None
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        return None
+
 
 st.markdown(
     """
@@ -101,6 +115,32 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     margin: 12px 0 16px 0;
 }
 
+.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.report-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.report-logo {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.report-logo img {
+    max-height: 42px;
+    width: auto;
+    object-fit: contain;
+}
+
 .report-title {
     font-size: 1.25rem;
     font-weight: 800;
@@ -176,6 +216,95 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     font-size: 0.9rem;
 }
 
+/* Barras visuais do relatório */
+.visual-block {
+    border: 1px solid #e9e9e9;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.visual-title {
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.bar-track {
+    width: 100%;
+    height: 12px;
+    background: #f1f1f1;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 6px 0 4px 0;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #FFC728 0%, #FFB300 100%);
+    border-radius: 999px;
+}
+
+.bar-legend {
+    font-size: 0.84rem;
+    color: #666;
+}
+
+.compare-row {
+    margin-top: 8px;
+}
+
+.compare-label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.compare-track {
+    width: 100%;
+    height: 10px;
+    background: #f1f1f1;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.compare-fill-org {
+    height: 100%;
+    background: #FFC728;
+    border-radius: 999px;
+}
+
+.compare-fill-base {
+    height: 100%;
+    background: #cfcfcf;
+    border-radius: 999px;
+}
+
+.level-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.level-badge {
+    font-size: 0.78rem;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    color: #555;
+}
+
+.level-badge.active {
+    background: #fff3c4;
+    border-color: #FFC728;
+    color: #111;
+    font-weight: 700;
+}
+
 /* Controle print */
 .no-print { display: block; }
 .print-only { display: none; }
@@ -194,26 +323,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-    }
-
-    /* Esconde tudo operacional */
-    [data-testid="stSidebar"],
-    [data-testid="stHeader"],
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    [data-testid="stStatusWidget"],
-    [data-testid="stChatInput"],
-    [data-testid="stForm"],
-    [data-testid="stSlider"],
-    [data-testid="stTextInput"],
-    [data-testid="stSelectbox"],
-    [data-testid="stCheckbox"],
-    button,
-    [role="button"],
-    iframe,
-    .no-print {
-        display: none !important;
-        visibility: hidden !important;
     }
 
     .print-only {
@@ -237,7 +346,8 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     .report-wrap,
     .result-card,
     .kpi-card,
-    .dim-card {
+    .dim-card,
+    .visual-block {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
     }
@@ -511,27 +621,20 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
         "data_hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "versao_instrumento": "agenda_estrategica_v1",
         "modulo": "Agenda Estratégica",
-
-        # dados institucionais (coletados ANTES)
         "instituicao": dados_institucionais.get("instituicao", ""),
         "poder": dados_institucionais.get("poder", ""),
         "esfera": dados_institucionais.get("esfera", ""),
         "estado_uf": dados_institucionais.get("estado_uf", ""),
         "consentimento_uso_informacoes": dados_institucionais.get("consentimento_uso_informacoes", False),
-
-        # dados pessoais (coletados DEPOIS)
         "nome_respondente": dados_pessoais.get("nome_respondente", ""),
         "email_respondente": dados_pessoais.get("email_respondente", ""),
         "area_unidade": dados_pessoais.get("area_unidade", ""),
         "cargo_funcao": dados_pessoais.get("cargo_funcao", ""),
         "deseja_contato_diagnostico_completo": dados_pessoais.get("deseja_contato_diagnostico_completo", False),
-
-        # scores
         "score_geral": media_geral,
         "nivel_maturidade": nivel,
     }
 
-    # scores por dimensão
     for dim, valor in medias_dim.items():
         col = (
             "score_dim_"
@@ -547,7 +650,6 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
         )
         registro[col] = round(float(valor), 2)
 
-    # respostas detalhadas
     for qid, nota in respostas.items():
         registro[f"q_{qid.replace('.', '_')}"] = nota
 
@@ -869,7 +971,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 
 # -------------------
-# RESUMO EXECUTIVO (VISÍVEL NA TELA, NÃO IMPRIME)
+# RESUMO EXECUTIVO (TELA SOMENTE)
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
@@ -932,13 +1034,15 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
+
 # -------------------
-# RELATÓRIO PRINT-ONLY (PDF BONITO) - CORRIGIDO
+# RELATÓRIO PRINT-ONLY (COM LOGO + VISUAIS)
 # -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
     medias_dim = st.session_state.medias_dimensao or {}
 
+    score_geral_raw = float(r.get("score_geral", 0) or 0)
     score_geral = html.escape(str(r.get("score_geral", "")))
     nivel = html.escape(str(r.get("nivel_maturidade", "")))
     data_relatorio = html.escape(str(r.get("data_hora", "")))
@@ -952,6 +1056,26 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     diag_id_txt = html.escape(str(r.get("id_resposta", "")))
     interesse = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
 
+    score_pct = max(0, min((score_geral_raw / 3) * 100, 100))
+
+    if score_geral_raw < 1.0:
+        active_level = 1
+    elif score_geral_raw < 2.0:
+        active_level = 2
+    elif score_geral_raw < 2.6:
+        active_level = 3
+    else:
+        active_level = 4
+
+    level_badges_html = (
+        f'<div class="level-badges">'
+        f'<div class="level-badge{" active" if active_level == 1 else ""}">Incipiente</div>'
+        f'<div class="level-badge{" active" if active_level == 2 else ""}">Em estruturação</div>'
+        f'<div class="level-badge{" active" if active_level == 3 else ""}">Parcialmente estruturado</div>'
+        f'<div class="level-badge{" active" if active_level == 4 else ""}">Bem estruturado</div>'
+        f'</div>'
+    )
+
     cards_html_list = []
     for dim, media in medias_dim.items():
         base = observatorio_means.get(dim, None)
@@ -959,6 +1083,8 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             continue
 
         diff = round(media - base, 2)
+        org_pct = max(0, min((media / 3) * 100, 100))
+        base_pct = max(0, min((base / 3) * 100, 100))
 
         if media < 1.5:
             prioridade = "Prioridade alta"
@@ -974,18 +1100,54 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             f'<div class="dim-card">'
             f'<strong>{html.escape(dim)}</strong>'
             f'<div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>'
-            f'<div class="muted"><b>{html.escape(prioridade)}:</b> {html.escape(recomendacao)}</div>'
+
+            f'<div class="compare-row">'
+            f'<div class="compare-label">Organização</div>'
+            f'<div class="compare-track"><div class="compare-fill-org" style="width:{org_pct:.1f}%;"></div></div>'
+            f'</div>'
+
+            f'<div class="compare-row">'
+            f'<div class="compare-label">Base nacional</div>'
+            f'<div class="compare-track"><div class="compare-fill-base" style="width:{base_pct:.1f}%;"></div></div>'
+            f'</div>'
+
+            f'<div class="muted" style="margin-top:6px;"><b>{html.escape(prioridade)}:</b> {html.escape(recomendacao)}</div>'
             f'</div>'
         )
 
     html_dim_cards = "".join(cards_html_list)
 
+    logo_b64 = file_to_base64(LOGO_PATH)
+    logo_html = ""
+    if logo_b64:
+        logo_html = (
+            '<div class="report-logo">'
+            f'<img src="data:image/png;base64,{logo_b64}" alt="Logo Publix">'
+            '</div>'
+        )
+
+    visual_score_html = (
+        '<div class="visual-block">'
+        '<div class="visual-title">Indicador visual de maturidade</div>'
+        f'<div><b>Score geral:</b> {score_geral} / 3,0</div>'
+        f'<div class="bar-track"><div class="bar-fill" style="width:{score_pct:.1f}%;"></div></div>'
+        '<div class="bar-legend">Escala de 0 a 3</div>'
+        + level_badges_html +
+        '</div>'
+    )
+
     html_relatorio = (
         '<div id="report-print-root" class="print-only">'
         '<div class="report-wrap">'
         '<div class="publix-band"></div>'
+
+        '<div class="report-header">'
+        '<div class="report-header-left">'
         '<div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>'
         f'<div class="report-subtitle">Observatório de Governança para Resultados: Inteligência Artificial<br>Emitido em: {data_relatorio}</div>'
+        '</div>'
+        + logo_html +
+        '</div>'
 
         '<div class="section-print-title">Identificação institucional</div>'
         '<div class="kpi-grid">'
@@ -1002,6 +1164,9 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         '<div class="kpi-card"><div class="label">Interesse em contato</div><div class="value">' + interesse + '</div></div>'
         '<div class="kpi-card"><div class="label">ID do diagnóstico</div><div class="value">' + diag_id_txt + '</div></div>'
         '</div>'
+
+        '<div class="section-print-title">Visual executivo</div>'
+        + visual_score_html +
 
         '<div class="section-print-title">Análise por dimensão</div>'
         + html_dim_cards +
@@ -1074,12 +1239,10 @@ if st.session_state.respondente_salvo:
                     return;
                 }
 
-                // Coleta estilos da página principal para manter o visual
                 const styles = Array.from(rootDoc.querySelectorAll("style, link[rel='stylesheet']"))
                     .map(el => el.outerHTML)
                     .join("\\n");
 
-                // CSS extra para garantir impressão limpa
                 const extraPrintCss = `
                     <style>
                         @page { size: A4; margin: 12mm; }
@@ -1089,12 +1252,8 @@ if st.session_state.respondente_salvo:
                             print-color-adjust: exact !important;
                             font-family: sans-serif;
                         }
-
-                        /* Garante que o relatório apareça */
                         .print-only { display: block !important; }
-
-                        /* Evita quebra feia */
-                        .report-wrap, .kpi-card, .dim-card {
+                        .report-wrap, .kpi-card, .dim-card, .visual-block {
                             break-inside: avoid !important;
                             page-break-inside: avoid !important;
                         }
@@ -1124,7 +1283,6 @@ if st.session_state.respondente_salvo:
                 `);
                 printWindow.document.close();
 
-                // Espera renderizar antes de imprimir
                 printWindow.onload = function() {
                     printWindow.focus();
                     printWindow.print();
