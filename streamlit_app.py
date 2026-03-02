@@ -33,6 +33,38 @@ LOGO_PATH = Path("publix_logo.png")
 
 
 # -------------------
+# UTILITÁRIOS DE CONFIG
+# -------------------
+def get_config_value(key: str):
+    """
+    Lê primeiro do ambiente (Render) e, se não existir, tenta st.secrets (Streamlit).
+    Também limpa aspas acidentais nas pontas.
+    """
+    value = os.getenv(key)
+
+    if value in (None, ""):
+        try:
+            value = st.secrets.get(key)
+        except Exception:
+            value = None
+
+    if isinstance(value, str):
+        value = value.strip().strip('"').strip("'")
+
+    return value
+
+
+def file_to_base64(path: Path):
+    if not path.exists():
+        return None
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        return None
+
+
+# -------------------
 # GOOGLE SHEETS
 # -------------------
 @st.cache_resource
@@ -52,27 +84,29 @@ def conectar_google_sheets():
             "GCP_UNIVERSE_DOMAIN",
         ]
 
-        faltando = [k for k in required_keys if not os.environ.get(k)]
+        faltando = [k for k in required_keys if not get_config_value(k)]
         if faltando:
             raise Exception(
-                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente do Render."
+                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente."
             )
 
         service_account_info = {
-            "type": os.environ["GCP_TYPE"],
-            "project_id": os.environ["GCP_PROJECT_ID"],
-            "private_key_id": os.environ["GCP_PRIVATE_KEY_ID"],
-            "private_key": os.environ["GCP_PRIVATE_KEY"],
-            "client_email": os.environ["GCP_CLIENT_EMAIL"],
-            "client_id": os.environ["GCP_CLIENT_ID"],
-            "auth_uri": os.environ["GCP_AUTH_URI"],
-            "token_uri": os.environ["GCP_TOKEN_URI"],
-            "auth_provider_x509_cert_url": os.environ["GCP_AUTH_PROVIDER_X509_CERT_URL"],
-            "client_x509_cert_url": os.environ["GCP_CLIENT_X509_CERT_URL"],
-            "universe_domain": os.environ["GCP_UNIVERSE_DOMAIN"],
+            "type": get_config_value("GCP_TYPE"),
+            "project_id": get_config_value("GCP_PROJECT_ID"),
+            "private_key_id": get_config_value("GCP_PRIVATE_KEY_ID"),
+            "private_key": get_config_value("GCP_PRIVATE_KEY"),
+            "client_email": get_config_value("GCP_CLIENT_EMAIL"),
+            "client_id": get_config_value("GCP_CLIENT_ID"),
+            "auth_uri": get_config_value("GCP_AUTH_URI"),
+            "token_uri": get_config_value("GCP_TOKEN_URI"),
+            "auth_provider_x509_cert_url": get_config_value("GCP_AUTH_PROVIDER_X509_CERT_URL"),
+            "client_x509_cert_url": get_config_value("GCP_CLIENT_X509_CERT_URL"),
+            "universe_domain": get_config_value("GCP_UNIVERSE_DOMAIN"),
         }
 
-        service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
+        # Corrige private key salva com \n literal
+        if isinstance(service_account_info["private_key"], str):
+            service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
         creds = Credentials.from_service_account_info(
             service_account_info,
@@ -80,20 +114,53 @@ def conectar_google_sheets():
         )
 
         client = gspread.authorize(creds)
-        planilha = client.open(SHEET_NAME)
-        aba = planilha.worksheet(WORKSHEET_NAME)
+
+        try:
+            planilha = client.open(SHEET_NAME)
+        except SpreadsheetNotFound:
+            raise Exception(
+                f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
+                f"Compartilhe a planilha com o e-mail da service account ({service_account_info['client_email']})."
+            )
+
+        try:
+            aba = planilha.worksheet(WORKSHEET_NAME)
+        except WorksheetNotFound:
+            raise Exception(
+                f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
+            )
+
         return aba
 
-    except SpreadsheetNotFound:
-        raise Exception(
-            f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. Compartilhe a planilha com a service account."
-        )
-    except WorksheetNotFound:
-        raise Exception(
-            f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
-        )
     except Exception as e:
         raise Exception(f"Erro na conexão com Google Sheets: {e}")
+
+
+def garantir_cabecalho(aba, registro: dict):
+    try:
+        primeira_linha = aba.row_values(1)
+        cabecalho_esperado = list(registro.keys())
+
+        # Se a planilha está vazia, insere cabeçalho
+        if not primeira_linha:
+            aba.insert_row(cabecalho_esperado, 1, value_input_option="USER_ENTERED")
+            return
+
+        # Se a primeira linha já é um registro (e não cabeçalho), insere o cabeçalho acima
+        if primeira_linha != cabecalho_esperado:
+            aba.insert_row(cabecalho_esperado, 1, value_input_option="USER_ENTERED")
+
+    except Exception as e:
+        raise Exception(f"Erro ao garantir cabeçalho da planilha: {e}")
+
+
+def salvar_registro_google_sheets(registro: dict):
+    try:
+        aba = conectar_google_sheets()
+        garantir_cabecalho(aba, registro)
+        aba.append_row(list(registro.values()), value_input_option="USER_ENTERED")
+    except Exception as e:
+        raise Exception(f"Erro ao salvar registro no Google Sheets: {e}")
 
 st.markdown(
     """
@@ -442,7 +509,7 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-openai_api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+openai_api_key = get_config_value("OPENAI_API_KEY")
 if not openai_api_key:
     st.error("OPENAI_API_KEY não encontrada. Configure em Secrets do Streamlit ou na variável de ambiente.")
     st.stop()
