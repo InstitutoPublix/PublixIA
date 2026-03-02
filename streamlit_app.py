@@ -52,31 +52,27 @@ def conectar_google_sheets():
             "GCP_UNIVERSE_DOMAIN",
         ]
 
-        def get_secret_value(key: str):
-            return st.secrets.get(key, os.getenv(key))
-
-        faltando = [k for k in required_keys if not get_secret_value(k)]
+        faltando = [k for k in required_keys if not os.environ.get(k)]
         if faltando:
             raise Exception(
-                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente."
+                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente do Render."
             )
 
         service_account_info = {
-            "type": get_secret_value("GCP_TYPE"),
-            "project_id": get_secret_value("GCP_PROJECT_ID"),
-            "private_key_id": get_secret_value("GCP_PRIVATE_KEY_ID"),
-            "private_key": get_secret_value("GCP_PRIVATE_KEY"),
-            "client_email": get_secret_value("GCP_CLIENT_EMAIL"),
-            "client_id": get_secret_value("GCP_CLIENT_ID"),
-            "auth_uri": get_secret_value("GCP_AUTH_URI"),
-            "token_uri": get_secret_value("GCP_TOKEN_URI"),
-            "auth_provider_x509_cert_url": get_secret_value("GCP_AUTH_PROVIDER_X509_CERT_URL"),
-            "client_x509_cert_url": get_secret_value("GCP_CLIENT_X509_CERT_URL"),
-            "universe_domain": get_secret_value("GCP_UNIVERSE_DOMAIN"),
+            "type": os.environ["GCP_TYPE"],
+            "project_id": os.environ["GCP_PROJECT_ID"],
+            "private_key_id": os.environ["GCP_PRIVATE_KEY_ID"],
+            "private_key": os.environ["GCP_PRIVATE_KEY"],
+            "client_email": os.environ["GCP_CLIENT_EMAIL"],
+            "client_id": os.environ["GCP_CLIENT_ID"],
+            "auth_uri": os.environ["GCP_AUTH_URI"],
+            "token_uri": os.environ["GCP_TOKEN_URI"],
+            "auth_provider_x509_cert_url": os.environ["GCP_AUTH_PROVIDER_X509_CERT_URL"],
+            "client_x509_cert_url": os.environ["GCP_CLIENT_X509_CERT_URL"],
+            "universe_domain": os.environ["GCP_UNIVERSE_DOMAIN"],
         }
 
-        if isinstance(service_account_info["private_key"], str):
-            service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
+        service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
         creds = Credentials.from_service_account_info(
             service_account_info,
@@ -86,13 +82,11 @@ def conectar_google_sheets():
         client = gspread.authorize(creds)
         planilha = client.open(SHEET_NAME)
         aba = planilha.worksheet(WORKSHEET_NAME)
-
         return aba
 
     except SpreadsheetNotFound:
         raise Exception(
-            f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
-            f"Compartilhe a planilha com o e-mail da service account."
+            f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. Compartilhe a planilha com a service account."
         )
     except WorksheetNotFound:
         raise Exception(
@@ -100,7 +94,6 @@ def conectar_google_sheets():
         )
     except Exception as e:
         raise Exception(f"Erro na conexão com Google Sheets: {e}")
-
 
 st.markdown(
     """
