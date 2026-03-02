@@ -442,7 +442,7 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-openai_api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
+openai_api_key = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 if not openai_api_key:
     st.error("OPENAI_API_KEY não encontrada. Configure em Secrets do Streamlit ou na variável de ambiente.")
     st.stop()
