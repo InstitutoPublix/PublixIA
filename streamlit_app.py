@@ -21,15 +21,15 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-SHEET_NAME = "Observatório - Respostas"   # nome EXATO da sua planilha
-WORKSHEET_NAME = "respostas"              # nome EXATO da sua aba
+SHEET_NAME = "Observatório - Respostas"
+WORKSHEET_NAME = "respostas"
 
 st.set_page_config(
     page_title="Observatório de Governança para Resultados: IA",
     layout="centered"
 )
 
-LOGO_PATH = Path("publix_logo.png")  # coloque aqui o logo do Publix (PNG preferencialmente)
+LOGO_PATH = Path("publix_logo.png")
 
 
 # -------------------
@@ -38,15 +38,41 @@ LOGO_PATH = Path("publix_logo.png")  # coloque aqui o logo do Publix (PNG prefer
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        if "gcp_service_account" not in st.secrets:
+        required_keys = [
+            "GCP_TYPE",
+            "GCP_PROJECT_ID",
+            "GCP_PRIVATE_KEY_ID",
+            "GCP_PRIVATE_KEY",
+            "GCP_CLIENT_EMAIL",
+            "GCP_CLIENT_ID",
+            "GCP_AUTH_URI",
+            "GCP_TOKEN_URI",
+            "GCP_AUTH_PROVIDER_X509_CERT_URL",
+            "GCP_CLIENT_X509_CERT_URL",
+            "GCP_UNIVERSE_DOMAIN",
+        ]
+
+        faltando = [k for k in required_keys if k not in st.secrets]
+        if faltando:
             raise Exception(
-                "Secrets inválido: o bloco [gcp_service_account] não foi encontrado no Streamlit Cloud."
+                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no Streamlit Cloud."
             )
 
-        service_account_info = dict(st.secrets["gcp_service_account"])
+        service_account_info = {
+            "type": st.secrets["GCP_TYPE"],
+            "project_id": st.secrets["GCP_PROJECT_ID"],
+            "private_key_id": st.secrets["GCP_PRIVATE_KEY_ID"],
+            "private_key": st.secrets["GCP_PRIVATE_KEY"],
+            "client_email": st.secrets["GCP_CLIENT_EMAIL"],
+            "client_id": st.secrets["GCP_CLIENT_ID"],
+            "auth_uri": st.secrets["GCP_AUTH_URI"],
+            "token_uri": st.secrets["GCP_TOKEN_URI"],
+            "auth_provider_x509_cert_url": st.secrets["GCP_AUTH_PROVIDER_X509_CERT_URL"],
+            "client_x509_cert_url": st.secrets["GCP_CLIENT_X509_CERT_URL"],
+            "universe_domain": st.secrets["GCP_UNIVERSE_DOMAIN"],
+        }
 
-        # Corrige private_key caso venha com \\n literal
-        if "private_key" in service_account_info and isinstance(service_account_info["private_key"], str):
+        if isinstance(service_account_info["private_key"], str):
             service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
         creds = Credentials.from_service_account_info(
@@ -109,7 +135,6 @@ def file_to_base64(path: Path):
 st.markdown(
     """
 <style>
-/* ----------------- BASE ----------------- */
 [data-testid="stSidebar"] { display: none !important; }
 
 .block-container {
@@ -138,7 +163,6 @@ h1, h2, h3 {
     color: #111;
 }
 
-/* Alerta amarelo Publix */
 div[data-testid="stAlert"] {
     background-color: #FFF3C4 !important;
     border-left: 6px solid #FFC728 !important;
@@ -146,7 +170,6 @@ div[data-testid="stAlert"] {
 }
 div[data-testid="stAlert"] * { color: #000 !important; }
 
-/* Cartões / blocos */
 .form-card {
     border: 1px solid #dddddd;
     border-radius: 10px;
@@ -180,7 +203,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     font-size: 0.94rem;
 }
 
-/* Relatório bonito p/ PDF */
 .report-wrap {
     background: #ffffff;
     border: 1px solid #e8e8e8;
@@ -290,7 +312,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     font-size: 0.9rem;
 }
 
-/* Barras visuais do relatório */
 .visual-block {
     border: 1px solid #e9e9e9;
     border-radius: 10px;
@@ -379,11 +400,9 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     font-weight: 700;
 }
 
-/* Controle print */
 .no-print { display: block; }
 .print-only { display: none; }
 
-/* ----------------- PRINT / PDF ----------------- */
 @media print {
     @page {
         size: A4;
@@ -437,9 +456,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     unsafe_allow_html=True,
 )
 
-# -------------------
-# HEADER (NO PRINT)
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
@@ -463,10 +479,6 @@ Observatório de Governança para Resultados — inteligência para evoluir capa
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# API KEY
-# -------------------
 openai_api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 if not openai_api_key:
     st.error("OPENAI_API_KEY não encontrada. Configure em Secrets do Streamlit ou na variável de ambiente.")
@@ -474,10 +486,6 @@ if not openai_api_key:
 
 openai.api_key = openai_api_key
 
-
-# -------------------
-# QUESTÕES (APENAS AGENDA ESTRATÉGICA)
-# -------------------
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidades e ameaças dos contextos internos e externos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
@@ -555,9 +563,6 @@ SECTION_TITLES = {
 }
 
 
-# -------------------
-# FUNÇÕES AUXILIARES
-# -------------------
 def extrair_partes(qid: str):
     partes = str(qid).split(".")
     part = partes[0] if len(partes) >= 1 else None
@@ -681,9 +686,6 @@ Regras:
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
 
 
-# -------------------
-# PERSISTÊNCIA
-# -------------------
 def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict, respostas: dict, medias_dim: dict):
     media_geral = round(sum(respostas.values()) / len(respostas), 2) if respostas else None
     nivel = classificar_nivel(media_geral) if media_geral is not None else None
@@ -728,9 +730,6 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
     return registro
 
 
-# -------------------
-# STATE
-# -------------------
 if "diagnostico_respostas" not in st.session_state:
     st.session_state.diagnostico_respostas = None
 if "diagnostico_perfil_texto" not in st.session_state:
@@ -756,10 +755,6 @@ if "etapa1_ok" not in st.session_state:
 if "dados_pessoais" not in st.session_state:
     st.session_state.dados_pessoais = None
 
-
-# -------------------
-# ETAPA 1 — DADOS INSTITUCIONAIS E AUTORIZAÇÃO
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.subheader("1. Dados institucionais e autorização")
 
@@ -833,10 +828,6 @@ with st.form("form_dados_institucionais", clear_on_submit=False):
             st.success("Dados institucionais salvos. Agora preencha a Agenda Estratégica.")
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# ETAPA 2 — DIAGNÓSTICO (AGENDA ESTRATÉGICA)
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
 st.subheader("2. Agenda Estratégica")
@@ -945,10 +936,6 @@ else:
                 )
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# ETAPA 3 — DADOS PESSOAIS (PARA LIBERAR IA)
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 if st.session_state.diagnostico_gerado:
     st.markdown("---")
@@ -1029,10 +1016,6 @@ if st.session_state.diagnostico_gerado:
                 st.success("Perfeito! Chat com IA liberado e dados salvos com sucesso.")
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# RESUMO EXECUTIVO (TELA SOMENTE)
-# -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
 
@@ -1094,10 +1077,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# RELATÓRIO PRINT-ONLY (COM LOGO + VISUAIS)
-# -------------------
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
     medias_dim = st.session_state.medias_dimensao or {}
@@ -1232,10 +1211,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 
     st.markdown(html_relatorio, unsafe_allow_html=True)
 
-
-# -------------------
-# ETAPA 4 — CHAT COM IA
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
 st.subheader("4. Converse com a IA sobre o seu diagnóstico")
@@ -1270,10 +1245,6 @@ else:
         st.session_state.chat_history.append({"role": "assistant", "content": resposta})
 st.markdown('</div>', unsafe_allow_html=True)
 
-
-# -------------------
-# BOTÃO FLUTUANTE PDF (IMPRIME SOMENTE O RELATÓRIO)
-# -------------------
 if st.session_state.respondente_salvo:
     components.html(
         """
@@ -1365,10 +1336,6 @@ if st.session_state.respondente_salvo:
         height=80,
     )
 
-
-# -------------------
-# RODAPÉ
-# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
