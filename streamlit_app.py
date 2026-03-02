@@ -10,6 +10,7 @@ import base64
 from datetime import datetime
 from pathlib import Path
 import gspread
+from gspread.exceptions import SpreadsheetNotFound, WorksheetNotFound
 from google.oauth2.service_account import Credentials
 
 # -------------------
@@ -31,28 +32,68 @@ st.set_page_config(
 LOGO_PATH = Path("publix_logo.png")  # coloque aqui o logo do Publix (PNG preferencialmente)
 
 
+# -------------------
+# GOOGLE SHEETS
+# -------------------
 @st.cache_resource
 def conectar_google_sheets():
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
-        scopes=SCOPES
-    )
-    client = gspread.authorize(creds)
-    planilha = client.open(SHEET_NAME)
-    aba = planilha.worksheet(WORKSHEET_NAME)
-    return aba
+    try:
+        if "gcp_service_account" not in st.secrets:
+            raise Exception(
+                "Secrets inválido: o bloco [gcp_service_account] não foi encontrado no Streamlit Cloud."
+            )
+
+        service_account_info = dict(st.secrets["gcp_service_account"])
+
+        # Corrige private_key caso venha com \\n literal
+        if "private_key" in service_account_info and isinstance(service_account_info["private_key"], str):
+            service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
+
+        creds = Credentials.from_service_account_info(
+            service_account_info,
+            scopes=SCOPES
+        )
+
+        client = gspread.authorize(creds)
+
+        try:
+            planilha = client.open(SHEET_NAME)
+        except SpreadsheetNotFound:
+            raise Exception(
+                f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
+                f"Compartilhe a planilha com o e-mail da service account "
+                f"({service_account_info.get('client_email', 'service account')})."
+            )
+
+        try:
+            aba = planilha.worksheet(WORKSHEET_NAME)
+        except WorksheetNotFound:
+            raise Exception(
+                f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
+            )
+
+        return aba
+
+    except Exception as e:
+        raise Exception(f"Erro na conexão com Google Sheets: {e}")
 
 
 def garantir_cabecalho(aba, registro: dict):
-    valores = aba.get_all_values()
-    if not valores:
-        aba.append_row(list(registro.keys()), value_input_option="USER_ENTERED")
+    try:
+        valores = aba.get_all_values()
+        if not valores:
+            aba.append_row(list(registro.keys()), value_input_option="USER_ENTERED")
+    except Exception as e:
+        raise Exception(f"Erro ao garantir cabeçalho da planilha: {e}")
 
 
 def salvar_registro_google_sheets(registro: dict):
-    aba = conectar_google_sheets()
-    garantir_cabecalho(aba, registro)
-    aba.append_row(list(registro.values()), value_input_option="USER_ENTERED")
+    try:
+        aba = conectar_google_sheets()
+        garantir_cabecalho(aba, registro)
+        aba.append_row(list(registro.values()), value_input_option="USER_ENTERED")
+    except Exception as e:
+        raise Exception(f"Erro ao salvar registro no Google Sheets: {e}")
 
 
 def file_to_base64(path: Path):
@@ -968,7 +1009,8 @@ if st.session_state.diagnostico_gerado:
                 try:
                     salvar_registro_google_sheets(registro)
                 except Exception as e:
-                    st.error(f"Erro ao salvar no Google Sheets: {e}")
+                    st.error(str(e))
+                    st.info("O diagnóstico foi gerado, mas houve falha no salvamento. Verifique os Secrets, o nome da planilha/aba e a permissão da service account.")
                     st.stop()
 
                 perfil_txt = montar_perfil_texto(
