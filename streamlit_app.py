@@ -52,24 +52,27 @@ def conectar_google_sheets():
             "GCP_UNIVERSE_DOMAIN",
         ]
 
-        faltando = [k for k in required_keys if k not in st.secrets]
+        def get_secret_value(key: str):
+            return st.secrets.get(key, os.getenv(key))
+
+        faltando = [k for k in required_keys if not get_secret_value(k)]
         if faltando:
             raise Exception(
-                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no Streamlit Cloud."
+                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente."
             )
 
         service_account_info = {
-            "type": st.secrets["GCP_TYPE"],
-            "project_id": st.secrets["GCP_PROJECT_ID"],
-            "private_key_id": st.secrets["GCP_PRIVATE_KEY_ID"],
-            "private_key": st.secrets["GCP_PRIVATE_KEY"],
-            "client_email": st.secrets["GCP_CLIENT_EMAIL"],
-            "client_id": st.secrets["GCP_CLIENT_ID"],
-            "auth_uri": st.secrets["GCP_AUTH_URI"],
-            "token_uri": st.secrets["GCP_TOKEN_URI"],
-            "auth_provider_x509_cert_url": st.secrets["GCP_AUTH_PROVIDER_X509_CERT_URL"],
-            "client_x509_cert_url": st.secrets["GCP_CLIENT_X509_CERT_URL"],
-            "universe_domain": st.secrets["GCP_UNIVERSE_DOMAIN"],
+            "type": get_secret_value("GCP_TYPE"),
+            "project_id": get_secret_value("GCP_PROJECT_ID"),
+            "private_key_id": get_secret_value("GCP_PRIVATE_KEY_ID"),
+            "private_key": get_secret_value("GCP_PRIVATE_KEY"),
+            "client_email": get_secret_value("GCP_CLIENT_EMAIL"),
+            "client_id": get_secret_value("GCP_CLIENT_ID"),
+            "auth_uri": get_secret_value("GCP_AUTH_URI"),
+            "token_uri": get_secret_value("GCP_TOKEN_URI"),
+            "auth_provider_x509_cert_url": get_secret_value("GCP_AUTH_PROVIDER_X509_CERT_URL"),
+            "client_x509_cert_url": get_secret_value("GCP_CLIENT_X509_CERT_URL"),
+            "universe_domain": get_secret_value("GCP_UNIVERSE_DOMAIN"),
         }
 
         if isinstance(service_account_info["private_key"], str):
@@ -81,55 +84,22 @@ def conectar_google_sheets():
         )
 
         client = gspread.authorize(creds)
-
-        try:
-            planilha = client.open(SHEET_NAME)
-        except SpreadsheetNotFound:
-            raise Exception(
-                f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
-                f"Compartilhe a planilha com o e-mail da service account "
-                f"({service_account_info.get('client_email', 'service account')})."
-            )
-
-        try:
-            aba = planilha.worksheet(WORKSHEET_NAME)
-        except WorksheetNotFound:
-            raise Exception(
-                f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
-            )
+        planilha = client.open(SHEET_NAME)
+        aba = planilha.worksheet(WORKSHEET_NAME)
 
         return aba
 
+    except SpreadsheetNotFound:
+        raise Exception(
+            f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
+            f"Compartilhe a planilha com o e-mail da service account."
+        )
+    except WorksheetNotFound:
+        raise Exception(
+            f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
+        )
     except Exception as e:
         raise Exception(f"Erro na conexão com Google Sheets: {e}")
-
-
-def garantir_cabecalho(aba, registro: dict):
-    try:
-        valores = aba.get_all_values()
-        if not valores:
-            aba.append_row(list(registro.keys()), value_input_option="USER_ENTERED")
-    except Exception as e:
-        raise Exception(f"Erro ao garantir cabeçalho da planilha: {e}")
-
-
-def salvar_registro_google_sheets(registro: dict):
-    try:
-        aba = conectar_google_sheets()
-        garantir_cabecalho(aba, registro)
-        aba.append_row(list(registro.values()), value_input_option="USER_ENTERED")
-    except Exception as e:
-        raise Exception(f"Erro ao salvar registro no Google Sheets: {e}")
-
-
-def file_to_base64(path: Path):
-    if not path.exists():
-        return None
-    try:
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode("utf-8")
-    except Exception:
-        return None
 
 
 st.markdown(
