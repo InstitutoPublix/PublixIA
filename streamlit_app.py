@@ -25,7 +25,7 @@ SHEET_NAME = "Observatório - Respostas"
 WORKSHEET_NAME = "respostas"
 
 st.set_page_config(
-    page_title="Observatório de Governança para Resultados: IA",
+    page_title="Observatório da maturidade em governança para resultados: Faça seu diagnóstico inicial, com suporte de um copiloto de IA",
     layout="centered"
 )
 
@@ -489,7 +489,7 @@ div[data-testid="stAlert"] * { color: #000 !important; }
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
-<h1 style='margin-bottom: -8px;'>Observatório de Governança para Resultados: Inteligência Artificial</h1>
+<h1 style='margin-bottom: -8px;'>Observatório da maturidade em governança para resultados: Faça seu diagnóstico inicial, com suporte de um copiloto de IA</h1>
 
 <p style='font-size: 1.03rem; line-height: 1.52;'>
 A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições.
@@ -497,12 +497,16 @@ Ela interpreta suas respostas, compara com a base nacional do Observatório e id
 </p>
 
 <p style='font-size: 1.03rem; line-height: 1.52;'>
-Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, o Radar oferece uma visão integrada e acionável sobre a maturidade institucional.
+Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, a IA oferece uma visão integrada e acionável sobre a maturidade institucional.
 É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
 </p>
 
+<p style='font-size: 0.98rem; line-height: 1.5; margin-bottom: 8px;'>
+Este é apenas um diagnóstico prévio. Caso deseje realizar o diagnóstico completo, preencha os dados e o diagnóstico preliminar, e se assegure de assinalar a opção para que entremos em contato.
+</p>
+
 <p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
-Observatório de Governança para Resultados — inteligência para evoluir capacidades na geração de resultados sustentáveis.
+Observatório de Governança para Resultados: inteligência para evoluir capacidades na geração de resultados sustentáveis.
 </p>
 """,
     unsafe_allow_html=True,
@@ -609,9 +613,10 @@ def _normalizar_label(texto: str):
         "poder legislativo": "legislativo",
         "poder judiciário": "judiciário",
         "judiciario": "judiciário",
-        "empresa publica": "empresa pública",
         "org. internacional": "organismo internacional",
         "organismo int.": "organismo internacional",
+        "organismo internacional e terceiro setor": "organismo internacional",
+        "terceiro setor": "privado",
     }
     return substituicoes.get(t, t)
 
@@ -789,32 +794,32 @@ st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.subheader("1. Dados institucionais e autorização")
 
 with st.form("form_dados_institucionais", clear_on_submit=False):
-    c1, c2 = st.columns(2)
-
-    with c1:
-        instituicao = st.text_input("Instituição")
+    l1, l2 = st.columns(2)
+    with l1:
+        instituicao = st.text_input("1.1 Instituição", max_chars=120)
+    with l2:
         poder = st.selectbox(
-            "A qual poder sua instituição pertence?",
+            "1.2 A qual poder sua instituição pertence?",
             [
                 "",
                 "Executivo",
                 "Legislativo",
                 "Judiciário",
                 "Ministério Público",
-                "Empresa pública",
-                "Privado",
-                "Organismo internacional",
+                "Organismo internacional e terceiro setor",
                 "Outro",
             ],
         )
 
-    with c2:
+    l3, l4 = st.columns(2)
+    with l3:
         esfera = st.selectbox(
-            "Esfera",
-            ["", "Federal", "Estadual", "Municipal", "Privado", "Não se aplica"],
+            "1.3 Esfera",
+            ["", "Federal", "Estadual", "Municipal", "Terceiro setor"],
         )
+    with l4:
         estado_uf = st.selectbox(
-            "Estado (UF)",
+            "1.4 Estado (UF)",
             [
                 "",
                 "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
@@ -969,12 +974,12 @@ st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 if st.session_state.diagnostico_gerado:
     st.markdown("---")
-    st.subheader("3. Liberação da IA especialista")
+    st.subheader("3. Uso da IA especialista")
 
     st.markdown(
         """
 <div class="action-box">
-<strong>Para conversar com a IA especialista sobre a sua organização, informe os dados abaixo:</strong>
+<strong>Para conversar com a IA especialista sobre a sua organização, complete os dados abaixo:</strong>
 </div>
 """,
         unsafe_allow_html=True,
@@ -992,11 +997,11 @@ if st.session_state.diagnostico_gerado:
             cargo_funcao = st.text_input("Cargo / Função")
 
         deseja_contato = st.checkbox(
-            "Assinale esta opção se deseja que façamos contato para um diagnóstico mais completo.",
+            "Assinale esta opção se deseja que façamos contato para um diagnóstico completo.",
             value=False,
         )
 
-        salvar_dados_pessoais = st.form_submit_button("Liberar chat com IA", use_container_width=True)
+        salvar_dados_pessoais = st.form_submit_button("Conversar com IA especialista", use_container_width=True)
 
         if salvar_dados_pessoais:
             if not nome_respondente.strip():
