@@ -489,7 +489,11 @@ div[data-testid="stAlert"] * { color: #000 !important; }
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
-<h1 style='margin-bottom: -8px;'>Observatório da maturidade em governança para resultados: Faça seu diagnóstico inicial, com suporte de um copiloto de IA</h1>
+<h1 style='margin-bottom: 4px;'>Observatório da maturidade em governança para resultados</h1>
+
+<p style='font-size: 1.08rem; line-height: 1.4; margin-top: 0; margin-bottom: 16px; color: #444; font-weight: 600;'>
+Faça seu diagnóstico inicial, com suporte de um copiloto de IA
+</p>
 
 <p style='font-size: 1.03rem; line-height: 1.52;'>
 A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições.
@@ -501,8 +505,10 @@ Combinando análise de dados, linguagem natural e a experiência do Instituto Pu
 É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
 </p>
 
-<p style='font-size: 0.98rem; line-height: 1.5; margin-bottom: 8px;'>
-Este é apenas um diagnóstico prévio. Caso deseje realizar o diagnóstico completo, preencha os dados e o diagnóstico preliminar, e se assegure de assinalar a opção para que entremos em contato.
+<p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
+Apresentamos abaixo um diagnóstico preliminar para experimentação da Plataforma.
+
+O instrumento tem como finalidade proporcionar uma avaliação inicial. Caso haja interesse em realizar o diagnóstico completo, solicitamos o preenchimento das informações complementares ao final do formulário, com a devida indicação de interesse para contato.
 </p>
 
 <p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
