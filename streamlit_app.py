@@ -1,4 +1,15 @@
 import streamlit as st
+import io
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import mm
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 import pandas as pd
 import math
 import openai
@@ -105,6 +116,164 @@ def formatar_resumo_email(registro: dict, medias_dim: dict) -> str:
     return "\n".join(linhas)
 
 
+def gerar_pdf_relatorio(registro: dict, medias_dim: dict) -> bytes:
+    """Gera o PDF do relatório de diagnóstico e retorna como bytes."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=20*mm,
+        leftMargin=20*mm,
+        topMargin=20*mm,
+        bottomMargin=20*mm,
+    )
+
+    styles = getSampleStyleSheet()
+    amarelo = colors.HexColor("#FFC728")
+    cinza_claro = colors.HexColor("#f8f8f8")
+    cinza_borda = colors.HexColor("#e0e0e0")
+    cinza_texto = colors.HexColor("#444444")
+
+    estilo_titulo = ParagraphStyle("titulo", parent=styles["Normal"],
+        fontSize=16, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"),
+        spaceAfter=4)
+    estilo_subtitulo = ParagraphStyle("subtitulo", parent=styles["Normal"],
+        fontSize=9, fontName="Helvetica", textColor=colors.HexColor("#555555"),
+        spaceAfter=10)
+    estilo_secao = ParagraphStyle("secao", parent=styles["Normal"],
+        fontSize=10, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"),
+        spaceBefore=10, spaceAfter=6, borderPadding=(0,0,2,0))
+    estilo_normal = ParagraphStyle("normal", parent=styles["Normal"],
+        fontSize=9, fontName="Helvetica", textColor=cinza_texto, spaceAfter=3)
+    estilo_label = ParagraphStyle("label", parent=styles["Normal"],
+        fontSize=8, fontName="Helvetica", textColor=colors.HexColor("#888888"))
+    estilo_valor = ParagraphStyle("valor", parent=styles["Normal"],
+        fontSize=9, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"))
+    estilo_rodape = ParagraphStyle("rodape", parent=styles["Normal"],
+        fontSize=8, fontName="Helvetica", textColor=colors.HexColor("#999999"),
+        alignment=TA_RIGHT)
+
+    story = []
+
+    # Faixa amarela topo
+    story.append(Table(
+        [[" "]],
+        colWidths=[170*mm],
+        rowHeights=[4*mm],
+        style=TableStyle([("BACKGROUND", (0,0), (-1,-1), amarelo), ("LINEBELOW", (0,0), (-1,-1), 0, colors.white)])
+    ))
+    story.append(Spacer(1, 6*mm))
+
+    # Título
+    story.append(Paragraph("Relatório de Diagnóstico — Agenda Estratégica", estilo_titulo))
+    story.append(Paragraph(
+        f"Observatório de Governança para Resultados | Emitido em: {registro.get('data_hora', '')}",
+        estilo_subtitulo
+    ))
+    story.append(HRFlowable(width="100%", thickness=1, color=cinza_borda, spaceAfter=8))
+
+    # Identificação institucional
+    story.append(Paragraph("Identificação Institucional", estilo_secao))
+    dados_inst = [
+        [Paragraph("Instituição", estilo_label), Paragraph("Classificação", estilo_label)],
+        [Paragraph(str(registro.get("instituicao", "")), estilo_valor),
+         Paragraph(f"{registro.get('poder','')} | {registro.get('esfera','')} | {registro.get('estado_uf','')}", estilo_valor)],
+        [Paragraph("Respondente", estilo_label), Paragraph("Cargo / Contato", estilo_label)],
+        [Paragraph(str(registro.get("nome_respondente", "")), estilo_valor),
+         Paragraph(f"{registro.get('cargo_funcao','')} | {registro.get('email_respondente','')}", estilo_valor)],
+    ]
+    t_inst = Table(dados_inst, colWidths=[85*mm, 85*mm])
+    t_inst.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
+        ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
+        ("INNERGRID", (0,0), (-1,-1), 0.5, cinza_borda),
+        ("TOPPADDING", (0,0), (-1,-1), 5),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+        ("LEFTPADDING", (0,0), (-1,-1), 8),
+        ("RIGHTPADDING", (0,0), (-1,-1), 8),
+        ("LINEAFTER", (0,0), (0,-1), 0.5, cinza_borda),
+    ]))
+    story.append(t_inst)
+    story.append(Spacer(1, 6*mm))
+
+    # Resultado geral
+    story.append(Paragraph("Resultado Geral", estilo_secao))
+    score_raw = float(registro.get("score_geral", 0) or 0)
+    nivel = str(registro.get("nivel_maturidade", ""))
+    diag_id = str(registro.get("id_resposta", ""))
+
+    dados_res = [
+        [Paragraph("Score Geral", estilo_label),
+         Paragraph("Nível de Maturidade", estilo_label),
+         Paragraph("ID do Diagnóstico", estilo_label)],
+        [Paragraph(f"{score_raw:.2f} / 3,00", estilo_valor),
+         Paragraph(nivel, estilo_valor),
+         Paragraph(diag_id[:18] + "...", estilo_valor)],
+    ]
+    t_res = Table(dados_res, colWidths=[40*mm, 70*mm, 60*mm])
+    t_res.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
+        ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
+        ("INNERGRID", (0,0), (-1,-1), 0.5, cinza_borda),
+        ("TOPPADDING", (0,0), (-1,-1), 5),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+        ("LEFTPADDING", (0,0), (-1,-1), 8),
+        ("RIGHTPADDING", (0,0), (-1,-1), 8),
+        ("LINEBELOW", (0,0), (-1,0), 3, amarelo),
+    ]))
+    story.append(t_res)
+    story.append(Spacer(1, 6*mm))
+
+    # Análise por dimensão
+    if medias_dim:
+        story.append(Paragraph("Análise por Dimensão", estilo_secao))
+        for dim, media in medias_dim.items():
+            base = 1.92  # observatorio_means
+            diff = round(media - base, 2)
+            sinal = "+" if diff >= 0 else ""
+
+            if media < 1.5:
+                prioridade = "Prioridade alta"
+                recomendacao = "Estruturar fundamentos da agenda estratégica (cenários, objetivos, metas e planos de ação)."
+            elif media < 2.0:
+                prioridade = "Prioridade média"
+                recomendacao = "Fortalecer consistência e institucionalização das práticas estratégicas."
+            else:
+                prioridade = "Prioridade de consolidação"
+                recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
+
+            dados_dim = [
+                [Paragraph(str(dim), estilo_secao)],
+                [Paragraph(
+                    f"Média da organização: <b>{media:.2f}</b> &nbsp;|&nbsp; "
+                    f"Média da base: <b>{base:.2f}</b> &nbsp;|&nbsp; "
+                    f"Diferença: <b>{sinal}{diff:.2f}</b>",
+                    estilo_normal
+                )],
+                [Paragraph(f"<b>{prioridade}:</b> {recomendacao}", estilo_normal)],
+            ]
+            t_dim = Table(dados_dim, colWidths=[170*mm])
+            t_dim.setStyle(TableStyle([
+                ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
+                ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
+                ("LINEBEFORE", (0,0), (0,-1), 4, amarelo),
+                ("TOPPADDING", (0,0), (-1,-1), 5),
+                ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+                ("LEFTPADDING", (0,0), (-1,-1), 10),
+                ("RIGHTPADDING", (0,0), (-1,-1), 8),
+            ]))
+            story.append(t_dim)
+            story.append(Spacer(1, 4*mm))
+
+    # Rodapé
+    story.append(Spacer(1, 8*mm))
+    story.append(HRFlowable(width="100%", thickness=1, color=cinza_borda, spaceAfter=4))
+    story.append(Paragraph("Desenvolvido pelo Instituto Publix — institutopublix.com.br", estilo_rodape))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
 def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict):
     smtp_host = get_config_value("SMTP_HOST")
     smtp_port = get_config_value("SMTP_PORT")
@@ -119,18 +288,81 @@ def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict)
     if not smtp_user: faltando.append("SMTP_USER")
     if not smtp_password: faltando.append("SMTP_PASSWORD")
     if not smtp_from_email: faltando.append("SMTP_FROM_EMAIL")
-
     if faltando:
         raise Exception(f"Configuração de e-mail incompleta. Faltam: {', '.join(faltando)}.")
 
-    assunto = "Resumo do seu diagnóstico prévio - Observatório da maturidade em governança para resultados"
-    corpo = formatar_resumo_email(registro, medias_dim)
+    nome = registro.get("nome_respondente", "")
+    instituicao = registro.get("instituicao", "")
 
-    msg = EmailMessage()
-    msg["Subject"] = assunto
+    # Corpo institucional do e-mail
+    corpo_html = f"""
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="background: linear-gradient(90deg, #FFC728, #FFB300); height: 6px; border-radius: 3px;"></div>
+  <div style="padding: 28px 32px;">
+    <p style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">Olá, {nome}!</p>
+    <p style="font-size: 14px; line-height: 1.6; margin-top: 0;">
+      Obrigado por participar do <strong>Observatório da Maturidade em Governança para Resultados</strong>
+      do Instituto Publix.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6;">
+      Em anexo, você encontra o relatório completo do diagnóstico prévio realizado por
+      <strong>{instituicao}</strong>.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6;">
+      Este é apenas um diagnóstico inicial. Nossa equipe entrará em contato em breve para
+      apresentar as possibilidades de um diagnóstico completo e aprofundado.
+    </p>
+    <p style="font-size: 14px; line-height: 1.6;">
+      Qualquer dúvida, estamos à disposição pelo e-mail
+      <a href="mailto:contato@institutopublix.com.br" style="color: #FFC728;">contato@institutopublix.com.br</a>.
+    </p>
+    <p style="font-size: 14px; margin-top: 24px;">
+      Atenciosamente,<br>
+      <strong>Instituto Publix</strong>
+    </p>
+  </div>
+  <div style="background: #f8f8f8; padding: 12px 32px; font-size: 11px; color: #999; text-align: right; border-top: 1px solid #eee;">
+    Instituto Publix — institutopublix.com.br
+  </div>
+</div>
+"""
+
+    corpo_texto = f"""Olá, {nome}!
+
+Obrigado por participar do Observatório da Maturidade em Governança para Resultados do Instituto Publix.
+
+Em anexo, você encontra o relatório completo do diagnóstico prévio realizado por {instituicao}.
+
+Este é apenas um diagnóstico inicial. Nossa equipe entrará em contato em breve para apresentar as possibilidades de um diagnóstico completo e aprofundado.
+
+Qualquer dúvida, estamos à disposição pelo e-mail contato@institutopublix.com.br.
+
+Atenciosamente,
+Instituto Publix
+institutopublix.com.br
+"""
+
+    # Gera PDF
+    pdf_bytes = gerar_pdf_relatorio(registro, medias_dim)
+
+    # Monta e-mail com anexo
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = "Seu relatório de diagnóstico — Observatório de Governança para Resultados"
     msg["From"] = f"{smtp_from_name} <{smtp_from_email}>"
     msg["To"] = destinatario
-    msg.set_content(corpo)
+
+    alternativa = MIMEMultipart("alternative")
+    alternativa.attach(MIMEText(corpo_texto, "plain", "utf-8"))
+    alternativa.attach(MIMEText(corpo_html, "html", "utf-8"))
+    msg.attach(alternativa)
+
+    # Anexa PDF
+    part_pdf = MIMEBase("application", "pdf")
+    part_pdf.set_payload(pdf_bytes)
+    encoders.encode_base64(part_pdf)
+    part_pdf.add_header("Content-Disposition", "attachment",
+                        filename="Relatorio_Diagnostico_Publix.pdf")
+    msg.attach(part_pdf)
 
     port = int(str(smtp_port).strip())
     context = ssl.create_default_context()
