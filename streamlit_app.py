@@ -9,6 +9,9 @@ import html
 import base64
 from datetime import datetime
 from pathlib import Path
+import smtplib
+import ssl
+from email.message import EmailMessage
 import gspread
 from gspread.exceptions import SpreadsheetNotFound, WorksheetNotFound
 from google.oauth2.service_account import Credentials
@@ -36,22 +39,113 @@ LOGO_PATH = Path("publix_logo.png")
 # UTILITÁRIOS DE CONFIG
 # -------------------
 def get_config_value(key: str):
-    """
-    Lê primeiro do ambiente (Render) e, se não existir, tenta st.secrets (Streamlit).
-    Também limpa aspas acidentais nas pontas.
-    """
     value = os.getenv(key)
-
     if value in (None, ""):
         try:
             value = st.secrets.get(key)
         except Exception:
             value = None
-
     if isinstance(value, str):
         value = value.strip().strip('"').strip("'")
-
     return value
+
+
+def formatar_resumo_email(registro: dict, medias_dim: dict) -> str:
+    contato_msg = "Sim" if bool(registro.get("deseja_contato_diagnostico_completo", False)) else "Não"
+
+    linhas = []
+    linhas.append("Olá,")
+    linhas.append("")
+    linhas.append("Segue o resumo do seu diagnóstico prévio no Observatório da maturidade em governança para resultados.")
+    linhas.append("")
+    linhas.append("IDENTIFICAÇÃO")
+    linhas.append(f"- Instituição: {registro.get('instituicao', '')}")
+    linhas.append(f"- Poder: {registro.get('poder', '')}")
+    linhas.append(f"- Esfera: {registro.get('esfera', '')}")
+    linhas.append(f"- Estado (UF): {registro.get('estado_uf', '')}")
+    linhas.append("")
+    linhas.append("RESPONDENTE")
+    linhas.append(f"- Nome: {registro.get('nome_respondente', '')}")
+    linhas.append(f"- E-mail: {registro.get('email_respondente', '')}")
+    linhas.append(f"- Área / Unidade: {registro.get('area_unidade', '')}")
+    linhas.append(f"- Cargo / Função: {registro.get('cargo_funcao', '')}")
+    linhas.append(f"- Deseja contato para diagnóstico completo: {contato_msg}")
+    linhas.append("")
+    linhas.append("RESULTADO GERAL")
+    linhas.append(f"- Score geral: {registro.get('score_geral', '')}")
+    linhas.append(f"- Nível de maturidade: {registro.get('nivel_maturidade', '')}")
+    linhas.append(f"- ID do diagnóstico: {registro.get('id_resposta', '')}")
+    linhas.append("")
+
+    if medias_dim:
+        linhas.append("ANÁLISE POR DIMENSÃO")
+        for dim, media in medias_dim.items():
+            base = observatorio_means.get(dim)
+            if base is None:
+                continue
+            diff = round(media - base, 2)
+            if media < 1.5:
+                mensagem = "Prioridade alta: estruturar fundamentos da agenda estratégica (objetivos, metas, cenários e planos de ação)."
+            elif media < 2.0:
+                mensagem = "Prioridade média: fortalecer consistência, alinhamento e institucionalização das práticas estratégicas."
+            else:
+                mensagem = "Bom nível relativo: foco em consolidar, padronizar e ampliar a disseminação interna das práticas estratégicas."
+
+            linhas.append(f"- {dim}:")
+            linhas.append(f"  • Média da organização: {media:.2f}")
+            linhas.append(f"  • Média da base: {base:.2f}")
+            linhas.append(f"  • Diferença: {diff:+.2f}")
+            linhas.append(f"  • Leitura rápida: {mensagem}")
+            linhas.append("")
+
+    linhas.append("Este é um diagnóstico prévio. Caso tenha assinalado interesse, nossa equipe poderá entrar em contato para um diagnóstico completo.")
+    linhas.append("")
+    linhas.append("Instituto Publix")
+
+    return "\n".join(linhas)
+
+
+def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict):
+    smtp_host = get_config_value("SMTP_HOST")
+    smtp_port = get_config_value("SMTP_PORT")
+    smtp_user = get_config_value("SMTP_USER")
+    smtp_password = get_config_value("SMTP_PASSWORD")
+    smtp_from_email = get_config_value("SMTP_FROM_EMAIL") or smtp_user
+    smtp_from_name = get_config_value("SMTP_FROM_NAME") or "Instituto Publix"
+
+    faltando = []
+    if not smtp_host: faltando.append("SMTP_HOST")
+    if not smtp_port: faltando.append("SMTP_PORT")
+    if not smtp_user: faltando.append("SMTP_USER")
+    if not smtp_password: faltando.append("SMTP_PASSWORD")
+    if not smtp_from_email: faltando.append("SMTP_FROM_EMAIL")
+
+    if faltando:
+        raise Exception(f"Configuração de e-mail incompleta. Faltam: {', '.join(faltando)}.")
+
+    assunto = "Resumo do seu diagnóstico prévio - Observatório da maturidade em governança para resultados"
+    corpo = formatar_resumo_email(registro, medias_dim)
+
+    msg = EmailMessage()
+    msg["Subject"] = assunto
+    msg["From"] = f"{smtp_from_name} <{smtp_from_email}>"
+    msg["To"] = destinatario
+    msg.set_content(corpo)
+
+    port = int(str(smtp_port).strip())
+    context = ssl.create_default_context()
+
+    if port == 465:
+        with smtplib.SMTP_SSL(smtp_host, port, context=context, timeout=30) as server:
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP(smtp_host, port, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
 
 
 def file_to_base64(path: Path):
@@ -71,24 +165,13 @@ def file_to_base64(path: Path):
 def conectar_google_sheets():
     try:
         required_keys = [
-            "GCP_TYPE",
-            "GCP_PROJECT_ID",
-            "GCP_PRIVATE_KEY_ID",
-            "GCP_PRIVATE_KEY",
-            "GCP_CLIENT_EMAIL",
-            "GCP_CLIENT_ID",
-            "GCP_AUTH_URI",
-            "GCP_TOKEN_URI",
-            "GCP_AUTH_PROVIDER_X509_CERT_URL",
-            "GCP_CLIENT_X509_CERT_URL",
-            "GCP_UNIVERSE_DOMAIN",
+            "GCP_TYPE", "GCP_PROJECT_ID", "GCP_PRIVATE_KEY_ID", "GCP_PRIVATE_KEY",
+            "GCP_CLIENT_EMAIL", "GCP_CLIENT_ID", "GCP_AUTH_URI", "GCP_TOKEN_URI",
+            "GCP_AUTH_PROVIDER_X509_CERT_URL", "GCP_CLIENT_X509_CERT_URL", "GCP_UNIVERSE_DOMAIN",
         ]
-
         faltando = [k for k in required_keys if not get_config_value(k)]
         if faltando:
-            raise Exception(
-                f"Secrets inválidos: faltam as chaves {', '.join(faltando)} no ambiente."
-            )
+            raise Exception(f"Secrets inválidos: faltam as chaves {', '.join(faltando)}.")
 
         service_account_info = {
             "type": get_config_value("GCP_TYPE"),
@@ -108,11 +191,7 @@ def conectar_google_sheets():
         if isinstance(service_account_info["private_key"], str):
             service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
-        creds = Credentials.from_service_account_info(
-            service_account_info,
-            scopes=SCOPES
-        )
-
+        creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
         client = gspread.authorize(creds)
 
         try:
@@ -120,18 +199,15 @@ def conectar_google_sheets():
         except SpreadsheetNotFound:
             raise Exception(
                 f"Planilha não encontrada ou sem permissão: '{SHEET_NAME}'. "
-                f"Compartilhe a planilha com o e-mail da service account ({service_account_info['client_email']})."
+                f"Compartilhe com: {service_account_info['client_email']}"
             )
 
         try:
             aba = planilha.worksheet(WORKSHEET_NAME)
         except WorksheetNotFound:
-            raise Exception(
-                f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'."
-            )
+            raise Exception(f"A aba '{WORKSHEET_NAME}' não existe dentro da planilha '{SHEET_NAME}'.")
 
         return aba
-
     except Exception as e:
         raise Exception(f"Erro na conexão com Google Sheets: {e}")
 
@@ -140,16 +216,11 @@ def garantir_cabecalho(aba, registro: dict):
     try:
         primeira_linha = aba.row_values(1)
         cabecalho_esperado = list(registro.keys())
-
-        # Se a planilha está vazia, insere cabeçalho
         if not primeira_linha:
             aba.insert_row(cabecalho_esperado, 1, value_input_option="USER_ENTERED")
             return
-
-        # Se a primeira linha já é um registro (e não cabeçalho), insere o cabeçalho acima
         if primeira_linha != cabecalho_esperado:
             aba.insert_row(cabecalho_esperado, 1, value_input_option="USER_ENTERED")
-
     except Exception as e:
         raise Exception(f"Erro ao garantir cabeçalho da planilha: {e}")
 
@@ -162,43 +233,107 @@ def salvar_registro_google_sheets(registro: dict):
     except Exception as e:
         raise Exception(f"Erro ao salvar registro no Google Sheets: {e}")
 
+
+# -------------------
+# CSS
+# -------------------
 st.markdown(
     """
 <style>
 [data-testid="stSidebar"] { display: none !important; }
-
-.block-container {
-    padding-top: 1.2rem !important;
-    max-width: 1200px !important;
-}
-
+.block-container { padding-top: 1.2rem !important; max-width: 1200px !important; }
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
-
 .stAppDeployButton {display: none !important;}
 button[title="Manage app"] {display: none !important;}
 [data-testid="stStatusWidget"] {display: none !important;}
 button[aria-label="Manage app"],
 div[data-testid="manage-app-button"],
-div[data-testid="ManageAppButton"] {
-    display: none !important;
-}
-
-div[data-testid="stSlider"] {
-    margin-bottom: 0.7rem !important;
-}
-
-h1, h2, h3 {
-    color: #111;
-}
-
+div[data-testid="ManageAppButton"] { display: none !important; }
+div[data-testid="stSlider"] { margin-bottom: 0.7rem !important; }
+h1, h2, h3 { color: #111; }
 div[data-testid="stAlert"] {
     background-color: #FFF3C4 !important;
     border-left: 6px solid #FFC728 !important;
     border-radius: 8px !important;
 }
 div[data-testid="stAlert"] * { color: #000 !important; }
+
+/* ---- preview de score (antes do e-mail) ---- */
+.preview-banner {
+    background: linear-gradient(135deg, #fffbea 0%, #fff8d6 100%);
+    border: 2px solid #FFC728;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    text-align: center;
+}
+.preview-score {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #111;
+    line-height: 1.1;
+}
+.preview-nivel {
+    font-size: 1.1rem;
+    color: #555;
+    margin-top: 4px;
+    margin-bottom: 12px;
+}
+.preview-dim-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0e8c8;
+}
+.preview-dim-row:last-child { border-bottom: none; }
+.preview-dim-name { font-weight: 600; font-size: 0.97rem; }
+.preview-dim-value { font-size: 0.97rem; color: #444; }
+
+/* ---- blur / lock overlay ---- */
+.locked-section {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.55;
+}
+.unlock-cta {
+    background: #fff;
+    border: 2px solid #FFC728;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 20px 0;
+    text-align: center;
+    box-shadow: 0 4px 18px rgba(255,199,40,0.15);
+}
+.unlock-cta-title {
+    font-size: 1.18rem;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+.unlock-cta-sub {
+    color: #555;
+    font-size: 0.97rem;
+    margin-bottom: 0;
+}
+
+/* ---- email match indicator ---- */
+.email-match-ok {
+    color: #1a7a3c;
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
+.email-match-err {
+    color: #c0392b;
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-top: -8px;
+    margin-bottom: 8px;
+}
 
 .form-card {
     border: 1px solid #dddddd;
@@ -207,7 +342,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     background: #f8f8f8;
     margin-bottom: 14px;
 }
-
 .action-box {
     background: #fff8e1;
     border: 1px solid #f3d36c;
@@ -215,7 +349,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     padding: 10px 12px;
     margin: 8px 0 12px 0;
 }
-
 .result-card {
     background: #fff;
     border: 1px solid #e6e6e6;
@@ -224,15 +357,8 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     padding: 10px 12px;
     margin-bottom: 8px;
 }
-.result-card-title {
-    font-weight: 700;
-    margin-bottom: 3px;
-}
-.result-card-sub {
-    color: #444;
-    font-size: 0.94rem;
-}
-
+.result-card-title { font-weight: 700; margin-bottom: 3px; }
+.result-card-sub { color: #444; font-size: 0.94rem; }
 .report-wrap {
     background: #ffffff;
     border: 1px solid #e8e8e8;
@@ -240,7 +366,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     padding: 18px;
     margin: 12px 0 16px 0;
 }
-
 .report-header {
     display: flex;
     align-items: flex-start;
@@ -248,51 +373,18 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     gap: 16px;
     margin-bottom: 10px;
 }
-
-.report-header-left {
-    flex: 1;
-    min-width: 0;
-}
-
-.report-logo {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.report-logo img {
-    max-height: 42px;
-    width: auto;
-    object-fit: contain;
-}
-
-.report-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    margin-bottom: 2px;
-}
-
-.report-subtitle {
-    color: #555;
-    font-size: 0.92rem;
-    margin-bottom: 10px;
-}
-
+.report-header-left { flex: 1; min-width: 0; }
+.report-logo { flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; }
+.report-logo img { max-height: 42px; width: auto; object-fit: contain; }
+.report-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 2px; }
+.report-subtitle { color: #555; font-size: 0.92rem; margin-bottom: 10px; }
 .publix-band {
     height: 8px;
     background: linear-gradient(90deg, #FFC728 0%, #FFB300 100%);
     border-radius: 999px;
     margin-bottom: 12px;
 }
-
-.kpi-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin: 10px 0 14px 0;
-}
-
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 14px 0; }
 .kpi-card {
     background: #fff;
     border: 1px solid #e8e8e8;
@@ -300,20 +392,8 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     border-radius: 10px;
     padding: 10px 12px;
 }
-
-.kpi-card .label {
-    font-size: 0.82rem;
-    color: #666;
-    margin-bottom: 2px;
-}
-
-.kpi-card .value {
-    font-weight: 800;
-    font-size: 1.02rem;
-    color: #111;
-    word-break: break-word;
-}
-
+.kpi-card .label { font-size: 0.82rem; color: #666; margin-bottom: 2px; }
+.kpi-card .value { font-weight: 800; font-size: 1.02rem; color: #111; word-break: break-word; }
 .section-print-title {
     font-weight: 800;
     font-size: 1rem;
@@ -321,7 +401,6 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     padding-bottom: 4px;
     border-bottom: 1px solid #ececec;
 }
-
 .dim-card {
     border: 1px solid #e9e9e9;
     border-radius: 10px;
@@ -331,17 +410,8 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     break-inside: avoid;
     page-break-inside: avoid;
 }
-
-.dim-card strong {
-    display: block;
-    margin-bottom: 4px;
-}
-
-.muted {
-    color: #666;
-    font-size: 0.9rem;
-}
-
+.dim-card strong { display: block; margin-bottom: 4px; }
+.muted { color: #666; font-size: 0.9rem; }
 .visual-block {
     border: 1px solid #e9e9e9;
     border-radius: 10px;
@@ -351,12 +421,7 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     break-inside: avoid;
     page-break-inside: avoid;
 }
-
-.visual-title {
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
+.visual-title { font-weight: 800; margin-bottom: 8px; }
 .bar-track {
     width: 100%;
     height: 12px;
@@ -365,55 +430,18 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     overflow: hidden;
     margin: 6px 0 4px 0;
 }
-
 .bar-fill {
     height: 100%;
     background: linear-gradient(90deg, #FFC728 0%, #FFB300 100%);
     border-radius: 999px;
 }
-
-.bar-legend {
-    font-size: 0.84rem;
-    color: #666;
-}
-
-.compare-row {
-    margin-top: 8px;
-}
-
-.compare-label {
-    font-size: 0.84rem;
-    font-weight: 700;
-    margin-bottom: 2px;
-}
-
-.compare-track {
-    width: 100%;
-    height: 10px;
-    background: #f1f1f1;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.compare-fill-org {
-    height: 100%;
-    background: #FFC728;
-    border-radius: 999px;
-}
-
-.compare-fill-base {
-    height: 100%;
-    background: #cfcfcf;
-    border-radius: 999px;
-}
-
-.level-badges {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-}
-
+.bar-legend { font-size: 0.84rem; color: #666; }
+.compare-row { margin-top: 8px; }
+.compare-label { font-size: 0.84rem; font-weight: 700; margin-bottom: 2px; }
+.compare-track { width: 100%; height: 10px; background: #f1f1f1; border-radius: 999px; overflow: hidden; }
+.compare-fill-org { height: 100%; background: #FFC728; border-radius: 999px; }
+.compare-fill-base { height: 100%; background: #cfcfcf; border-radius: 999px; }
+.level-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .level-badge {
     font-size: 0.78rem;
     padding: 4px 8px;
@@ -422,95 +450,53 @@ div[data-testid="stAlert"] * { color: #000 !important; }
     background: #fafafa;
     color: #555;
 }
-
-.level-badge.active {
-    background: #fff3c4;
-    border-color: #FFC728;
-    color: #111;
-    font-weight: 700;
-}
-
+.level-badge.active { background: #fff3c4; border-color: #FFC728; color: #111; font-weight: 700; }
 .no-print { display: block; }
 .print-only { display: none; }
 
 @media print {
-    @page {
-        size: A4;
-        margin: 12mm;
-    }
-
-    html, body {
-        background: #fff !important;
-    }
-
-    body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .print-only {
-        display: block !important;
-    }
-
-    .block-container {
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-
+    @page { size: A4; margin: 12mm; }
+    html, body { background: #fff !important; }
+    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .print-only { display: block !important; }
+    .block-container { max-width: 100% !important; padding: 0 !important; }
     h1 { font-size: 18pt !important; margin-bottom: 6px !important; }
     h2 { font-size: 14pt !important; margin: 10px 0 6px 0 !important; }
     h3 { font-size: 12pt !important; margin: 8px 0 4px 0 !important; }
-
-    p, li, div, span {
-        font-size: 10.5pt !important;
-        line-height: 1.35 !important;
-    }
-
-    .report-wrap,
-    .result-card,
-    .kpi-card,
-    .dim-card,
-    .visual-block {
+    p, li, div, span { font-size: 10.5pt !important; line-height: 1.35 !important; }
+    .report-wrap, .result-card, .kpi-card, .dim-card, .visual-block {
         break-inside: avoid !important;
         page-break-inside: avoid !important;
     }
-
-    hr {
-        border: none !important;
-        border-top: 1px solid #dcdcdc !important;
-        margin: 8px 0 !important;
-    }
+    hr { border: none !important; border-top: 1px solid #dcdcdc !important; margin: 8px 0 !important; }
 }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
+# -------------------
+# CABEÇALHO
+# -------------------
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
 <h1 style='margin-bottom: 4px;'>Observatório da maturidade em governança para resultados</h1>
-
 <p style='font-size: 1.08rem; line-height: 1.4; margin-top: 0; margin-bottom: 16px; color: #444; font-weight: 600;'>
 Faça seu diagnóstico inicial, com suporte de um copiloto de IA
 </p>
-
 <p style='font-size: 1.03rem; line-height: 1.52;'>
 A <strong>Inteligência Artificial do Observatório da Governança para Resultados</strong> é uma camada criada para transformar dados em uma perspectiva de fortalecimento das instituições.
 Ela interpreta suas respostas, compara com a base nacional do Observatório e identifica padrões, fragilidades e oportunidades de evolução, de maneira objetiva, estratégica e personalizada para o seu órgão.
 </p>
-
 <p style='font-size: 1.03rem; line-height: 1.52;'>
 Combinando análise de dados, linguagem natural e a experiência do Instituto Publix em gestão para resultados, a IA oferece uma visão integrada e acionável sobre a maturidade institucional.
 É um instrumento de navegação: aponta onde você está, ilumina caminhos possíveis e orienta decisões que fortalecem capacidades.
 </p>
-
 <p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
 Apresentamos abaixo um diagnóstico preliminar para experimentação da Plataforma.
-
 O instrumento tem como finalidade proporcionar uma avaliação inicial. Caso haja interesse em realizar o diagnóstico completo, solicitamos o preenchimento das informações complementares ao final do formulário, com a devida indicação de interesse para contato.
 </p>
-
 <p style='font-size: 1.03rem; line-height: 1.52; font-weight: 600;'>
 Observatório de Governança para Resultados: inteligência para evoluir capacidades na geração de resultados sustentáveis.
 </p>
@@ -519,6 +505,9 @@ Observatório de Governança para Resultados: inteligência para evoluir capacid
 )
 st.markdown('</div>', unsafe_allow_html=True)
 
+# -------------------
+# OPENAI
+# -------------------
 openai_api_key = get_config_value("OPENAI_API_KEY")
 if not openai_api_key:
     st.error("OPENAI_API_KEY não encontrada. Configure em Secrets do Streamlit ou na variável de ambiente.")
@@ -526,6 +515,9 @@ if not openai_api_key:
 
 openai.api_key = openai_api_key
 
+# -------------------
+# QUESTÕES
+# -------------------
 QUESTOES = [
     {"id": "1.1.1", "texto": "Identificam-se as forças e fraquezas, assim como as oportunidades e ameaças dos contextos internos e externos da organização para formulação/revisão das estratégias.", "dimensao": "Agenda Estratégica"},
     {"id": "1.1.2", "texto": "Existe elaboração de cenários, ambientes futuros, considerando perspectivas políticas, econômicas, sociais, tecnológicas e demográficas?", "dimensao": "Agenda Estratégica"},
@@ -603,6 +595,9 @@ SECTION_TITLES = {
 }
 
 
+# -------------------
+# FUNÇÕES AUXILIARES
+# -------------------
 def extrair_partes(qid: str):
     partes = str(qid).split(".")
     part = partes[0] if len(partes) >= 1 else None
@@ -659,13 +654,9 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
     media_esfera_base = BASE_MEDIA_POR_ESFERA.get(esfera_norm) if esfera_norm else None
 
     if media_poder_base is not None:
-        linhas.append(
-            f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}."
-        )
+        linhas.append(f"No Observatório de Maturidade, a média geral de maturidade para o poder '{poder}' é {media_poder_base:.2f}.")
     if media_esfera_base is not None:
-        linhas.append(
-            f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}."
-        )
+        linhas.append(f"Na esfera '{esfera}', a média geral de maturidade observada na base é {media_esfera_base:.2f}.")
     if media_poder_base is not None or media_esfera_base is not None:
         linhas.append("")
 
@@ -680,10 +671,7 @@ def montar_perfil_texto(instituicao, poder, esfera, estado, respostas_dict, medi
                 situacao = "abaixo da média da base"
             else:
                 situacao = "próximo da média da base"
-
-            linhas.append(
-                f"- {dim}: {media_orgao:.2f} (média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})"
-            )
+            linhas.append(f"- {dim}: {media_orgao:.2f} (média da base: {media_base:.2f}; situação: {situacao}, diferença: {diff:+.2f})")
 
     linhas.append("")
     linhas.append("Notas detalhadas por questão:")
@@ -716,12 +704,13 @@ Regras:
     messages.extend(chat_history)
 
     try:
-        response = openai.ChatCompletion.create(
+        client_oai = openai.OpenAI(api_key=openai_api_key)
+        response = client_oai.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
             temperature=0.3,
         )
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
     except Exception as e:
         st.error(f"Erro ao chamar a API de IA: {e}")
         return "Tive um problema técnico para gerar a resposta agora. Tente novamente em instantes."
@@ -771,31 +760,34 @@ def montar_registro_para_salvar(dados_institucionais: dict, dados_pessoais: dict
     return registro
 
 
-if "diagnostico_respostas" not in st.session_state:
-    st.session_state.diagnostico_respostas = None
-if "diagnostico_perfil_texto" not in st.session_state:
-    st.session_state.diagnostico_perfil_texto = None
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "respostas_dict" not in st.session_state:
-    st.session_state.respostas_dict = {q["id"]: 1 for q in QUESTOES}
-if "pagina_quest" not in st.session_state:
-    st.session_state.pagina_quest = 1
-if "medias_dimensao" not in st.session_state:
-    st.session_state.medias_dimensao = None
-if "diagnostico_gerado" not in st.session_state:
-    st.session_state.diagnostico_gerado = False
-if "respondente_salvo" not in st.session_state:
-    st.session_state.respondente_salvo = False
-if "registro_salvo" not in st.session_state:
-    st.session_state.registro_salvo = None
-if "dados_institucionais" not in st.session_state:
-    st.session_state.dados_institucionais = None
-if "etapa1_ok" not in st.session_state:
-    st.session_state.etapa1_ok = False
-if "dados_pessoais" not in st.session_state:
-    st.session_state.dados_pessoais = None
+# -------------------
+# SESSION STATE
+# -------------------
+defaults = {
+    "diagnostico_respostas": None,
+    "diagnostico_perfil_texto": None,
+    "chat_history": [],
+    "respostas_dict": {q["id"]: 1 for q in QUESTOES},
+    "pagina_quest": 1,
+    "medias_dimensao": None,
+    "diagnostico_gerado": False,
+    "respondente_salvo": False,
+    "registro_salvo": None,
+    "dados_institucionais": None,
+    "etapa1_ok": False,
+    "dados_pessoais": None,
+    # --- novos estados para verificação de e-mail ---
+    "email_verificado": False,
+    "email_confirmacao_erro": False,
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
+
+# =========================================================
+# ETAPA 1 — Dados institucionais
+# =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.subheader("1. Dados institucionais e autorização")
 
@@ -806,32 +798,19 @@ with st.form("form_dados_institucionais", clear_on_submit=False):
     with l2:
         poder = st.selectbox(
             "1.2 A qual poder sua instituição pertence?",
-            [
-                "",
-                "Executivo",
-                "Legislativo",
-                "Judiciário",
-                "Ministério Público",
-                "Organismo internacional e terceiro setor",
-                "Outro",
-            ],
+            ["", "Executivo", "Legislativo", "Judiciário", "Ministério Público",
+             "Organismo internacional e terceiro setor", "Outro"],
         )
 
     l3, l4 = st.columns(2)
     with l3:
-        esfera = st.selectbox(
-            "1.3 Esfera",
-            ["", "Federal", "Estadual", "Municipal", "Terceiro setor"],
-        )
+        esfera = st.selectbox("1.3 Esfera", ["", "Federal", "Estadual", "Municipal", "Terceiro setor"])
     with l4:
         estado_uf = st.selectbox(
             "1.4 Estado (UF)",
-            [
-                "",
-                "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
-                "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
-                "RO", "RR", "RS", "SC", "SE", "SP", "TO"
-            ],
+            ["", "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
+             "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
+             "RO", "RR", "RS", "SC", "SE", "SP", "TO"],
         )
 
     st.markdown("### Autorização de uso das informações")
@@ -841,7 +820,7 @@ with st.form("form_dados_institucionais", clear_on_submit=False):
     )
     st.markdown(
         "<small><em>O sigilo das informações individuais institucionais será preservado, e quaisquer divulgações ocorrerão apenas de forma consolidada e anonimizada.</em></small>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     confirmar_etapa1 = st.form_submit_button("Continuar para o diagnóstico", use_container_width=True)
@@ -869,6 +848,10 @@ with st.form("form_dados_institucionais", clear_on_submit=False):
             st.success("Dados institucionais salvos. Agora preencha a Agenda Estratégica.")
 st.markdown('</div>', unsafe_allow_html=True)
 
+
+# =========================================================
+# ETAPA 2 — Questionário
+# =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
 st.subheader("2. Agenda Estratégica")
@@ -880,7 +863,6 @@ else:
 
     QUESTOES_POR_PAG = 10
     total_paginas = math.ceil(len(QUESTOES) / QUESTOES_POR_PAG)
-
     pagina = st.session_state.pagina_quest
     inicio = (pagina - 1) * QUESTOES_POR_PAG
     fim = min(inicio + QUESTOES_POR_PAG, len(QUESTOES))
@@ -930,10 +912,8 @@ else:
 
     with col1:
         st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
-
     with col2:
         st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
-
     with col3:
         ultimo_bloco = (pagina == total_paginas)
         gerar = st.button(
@@ -951,70 +931,121 @@ else:
         medias_dim = calcular_medias_por_dimensao(respostas)
         st.session_state.medias_dimensao = medias_dim
         st.session_state.diagnostico_gerado = True
+        # Reseta estados de verificação ao regerar
+        st.session_state.email_verificado = False
         st.session_state.respondente_salvo = False
         st.session_state.diagnostico_perfil_texto = None
         st.session_state.registro_salvo = None
         st.session_state.chat_history = []
         st.session_state.dados_pessoais = None
 
-        st.success("Diagnóstico gerado com sucesso!")
-
-        st.write("### Resumo do diagnóstico (por dimensão)")
-        for dim, media in medias_dim.items():
-            base = observatorio_means.get(dim)
-            if base is not None:
-                diff = round(media - base, 2)
-                st.markdown(
-                    f"""
-                    <div class="result-card">
-                        <div class="result-card-title">{html.escape(dim)}</div>
-                        <div class="result-card-sub">
-                            Sua média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
 st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="no-print">', unsafe_allow_html=True)
+
+# =========================================================
+# ETAPA 3 — Preview do score (visível antes do e-mail)
+# =========================================================
 if st.session_state.diagnostico_gerado:
+    respostas_preview = st.session_state.diagnostico_respostas or {}
+    medias_preview = st.session_state.medias_dimensao or {}
+    score_geral_preview = round(sum(respostas_preview.values()) / len(respostas_preview), 2) if respostas_preview else 0
+    nivel_preview = classificar_nivel(score_geral_preview)
+
     st.markdown("---")
-    st.subheader("3. Uso da IA especialista")
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
+    st.subheader("3. Resultado parcial do diagnóstico")
+
+    # --- Banner com score e resumo por dimensão ---
+    dims_html = ""
+    for dim, media in medias_preview.items():
+        base = observatorio_means.get(dim, None)
+        diff_txt = ""
+        if base is not None:
+            diff = round(media - base, 2)
+            sinal = "+" if diff >= 0 else ""
+            diff_txt = f"&nbsp;&nbsp;<span style='color:#888;font-size:0.88rem;'>vs. base: {sinal}{diff:.2f}</span>"
+        dims_html += f"""
+        <div class="preview-dim-row">
+            <span class="preview-dim-name">{html.escape(dim)}</span>
+            <span class="preview-dim-value"><b>{media:.2f}</b> / 3,00{diff_txt}</span>
+        </div>
+        """
 
     st.markdown(
-        """
-<div class="action-box">
-<strong>Para conversar com a IA especialista sobre a sua organização, complete os dados abaixo:</strong>
-</div>
-""",
+        f"""
+        <div class="preview-banner">
+            <div class="preview-score">{score_geral_preview:.2f} <span style="font-size:1.2rem;font-weight:400;color:#777;">/ 3,00</span></div>
+            <div class="preview-nivel">Nível: <strong>{html.escape(nivel_preview)}</strong></div>
+            {dims_html}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
+    # --- CTA para desbloquear IA e relatório completo ---
+    if not st.session_state.email_verificado:
+        st.markdown(
+            """
+            <div class="unlock-cta">
+                <div class="unlock-cta-title">🔓 Quer o relatório completo e acesso à IA especialista?</div>
+                <div class="unlock-cta-sub">Informe seus dados abaixo. O relatório detalhado será enviado para o seu e-mail — por isso pedimos confirmação do endereço.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# =========================================================
+# ETAPA 4 — Formulário de dados pessoais + verificação de e-mail
+# =========================================================
+st.markdown('<div class="no-print">', unsafe_allow_html=True)
+
+if st.session_state.diagnostico_gerado and not st.session_state.email_verificado:
+    st.subheader("4. Seus dados para receber o relatório")
+
     with st.form("form_dados_pessoais_pos_diag", clear_on_submit=False):
         c1, c2 = st.columns(2)
-
         with c1:
-            nome_respondente = st.text_input("Nome")
-            email_respondente = st.text_input("E-mail")
-
+            nome_respondente = st.text_input("Nome *")
+            email_respondente = st.text_input("E-mail *")
         with c2:
             area_unidade = st.text_input("Área / Unidade")
             cargo_funcao = st.text_input("Cargo / Função")
+
+        # Campo de confirmação de e-mail
+        email_confirmacao = st.text_input(
+            "Confirme seu e-mail *",
+            help="Digite o mesmo e-mail acima para confirmarmos o endereço.",
+        )
 
         deseja_contato = st.checkbox(
             "Assinale esta opção se deseja que façamos contato para um diagnóstico completo.",
             value=False,
         )
 
-        salvar_dados_pessoais = st.form_submit_button("Conversar com IA especialista", use_container_width=True)
+        salvar_dados_pessoais = st.form_submit_button(
+            "Confirmar e-mail e acessar relatório completo + IA",
+            use_container_width=True,
+        )
 
         if salvar_dados_pessoais:
+            erros = []
             if not nome_respondente.strip():
-                st.error("Preencha seu nome.")
-            elif not email_respondente.strip():
-                st.error("Preencha seu e-mail.")
+                erros.append("Preencha seu nome.")
+            if not email_respondente.strip():
+                erros.append("Preencha seu e-mail.")
+            if not email_confirmacao.strip():
+                erros.append("Confirme seu e-mail.")
+            elif email_respondente.strip().lower() != email_confirmacao.strip().lower():
+                erros.append("Os e-mails não coincidem. Verifique e tente novamente.")
+
+            if erros:
+                for erro in erros:
+                    st.error(erro)
             else:
+                # E-mails conferem — salva dados e prossegue
                 st.session_state.dados_pessoais = {
                     "nome_respondente": nome_respondente.strip(),
                     "email_respondente": email_respondente.strip(),
@@ -1034,6 +1065,7 @@ if st.session_state.diagnostico_gerado:
                     medias_dim=medias_dim,
                 )
 
+                # Salva no Google Sheets
                 try:
                     salvar_registro_google_sheets(registro)
                 except Exception as e:
@@ -1041,6 +1073,21 @@ if st.session_state.diagnostico_gerado:
                     st.info("O diagnóstico foi gerado, mas houve falha no salvamento. Verifique os Secrets, o nome da planilha/aba e a permissão da service account.")
                     st.stop()
 
+                # Envia e-mail com resumo — falha não bloqueia o fluxo
+                try:
+                    enviar_resumo_por_email(
+                        destinatario=st.session_state.dados_pessoais["email_respondente"],
+                        registro=registro,
+                        medias_dim=medias_dim,
+                    )
+                    st.success(f"Relatório enviado para **{email_respondente.strip()}**. Verifique sua caixa de entrada!")
+                except Exception as e:
+                    st.warning(
+                        f"Os dados foram salvos, mas não conseguimos enviar o e-mail agora ({e}). "
+                        "Você ainda pode acessar o relatório e a IA abaixo."
+                    )
+
+                # Monta perfil para IA
                 perfil_txt = montar_perfil_texto(
                     dados_inst.get("instituicao"),
                     dados_inst.get("poder"),
@@ -1051,73 +1098,18 @@ if st.session_state.diagnostico_gerado:
                 )
 
                 st.session_state.diagnostico_perfil_texto = perfil_txt
+                st.session_state.email_verificado = True
                 st.session_state.respondente_salvo = True
                 st.session_state.registro_salvo = registro
 
-                st.success("Perfeito! Chat com IA liberado e dados salvos com sucesso.")
+                st.rerun()
+
 st.markdown('</div>', unsafe_allow_html=True)
 
-if st.session_state.respondente_salvo and st.session_state.registro_salvo:
-    st.markdown('<div class="no-print">', unsafe_allow_html=True)
 
-    r = st.session_state.registro_salvo
-
-    st.markdown("---")
-    st.subheader("Resumo executivo do diagnóstico")
-
-    contato_msg = "Sim" if bool(r.get("deseja_contato_diagnostico_completo", False)) else "Não"
-
-    st.markdown(
-        f"""
-        <div class="result-card">
-            <div class="result-card-title">Instituição</div>
-            <div class="result-card-sub">{html.escape(str(r.get('instituicao','')))} | {html.escape(str(r.get('poder','')))} | {html.escape(str(r.get('esfera','')))} | {html.escape(str(r.get('estado_uf','')))}</div>
-        </div>
-        <div class="result-card">
-            <div class="result-card-title">Respondente</div>
-            <div class="result-card-sub">{html.escape(str(r.get('nome_respondente','')))} ({html.escape(str(r.get('cargo_funcao','')))}) — {html.escape(str(r.get('email_respondente','')))}</div>
-        </div>
-        <div class="result-card">
-            <div class="result-card-title">Interesse em contato</div>
-            <div class="result-card-sub">Deseja contato para diagnóstico mais completo: <strong>{contato_msg}</strong></div>
-        </div>
-        <div class="result-card">
-            <div class="result-card-title">Resultado geral</div>
-            <div class="result-card-sub">Score geral: <strong>{html.escape(str(r.get('score_geral','')))}</strong> | Nível: <strong>{html.escape(str(r.get('nivel_maturidade','')))}</strong> | ID do diagnóstico: <strong>{html.escape(str(r.get('id_resposta','')))}</strong></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    medias_dim = st.session_state.medias_dimensao or {}
-    for dim, media in medias_dim.items():
-        base = observatorio_means.get(dim, None)
-        if base is None:
-            continue
-
-        diff = round(media - base, 2)
-        if media < 1.5:
-            mensagem = "Prioridade alta: estruturar fundamentos da agenda estratégica (objetivos, metas, cenários e planos de ação)."
-        elif media < 2.0:
-            mensagem = "Prioridade média: fortalecer consistência, alinhamento e institucionalização das práticas estratégicas."
-        else:
-            mensagem = "Bom nível relativo: foco em consolidar, padronizar e ampliar disseminação interna das práticas estratégicas."
-
-        st.markdown(
-            f"""
-            <div class="result-card">
-                <div class="result-card-title">{html.escape(dim)} — interpretação rápida</div>
-                <div class="result-card-sub">
-                    Média: <strong>{media:.2f}</strong> | Base: <strong>{base:.2f}</strong> | Diferença: <strong>{diff:+.2f}</strong><br>
-                    {html.escape(mensagem)}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
+# =========================================================
+# ETAPA 5 — Relatório completo (só após e-mail confirmado)
+# =========================================================
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
     r = st.session_state.registro_salvo
     medias_dim = st.session_state.medias_dimensao or {}
@@ -1160,7 +1152,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         base = observatorio_means.get(dim, None)
         if base is None:
             continue
-
         diff = round(media - base, 2)
         org_pct = max(0, min((media / 3) * 100, 100))
         base_pct = max(0, min((base / 3) * 100, 100))
@@ -1179,14 +1170,10 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
             f'<div class="dim-card">'
             f'<strong>{html.escape(dim)}</strong>'
             f'<div><b>Média da organização:</b> {media:.2f} | <b>Base:</b> {base:.2f} | <b>Diferença:</b> {diff:+.2f}</div>'
-            f'<div class="compare-row">'
-            f'<div class="compare-label">Organização</div>'
-            f'<div class="compare-track"><div class="compare-fill-org" style="width:{org_pct:.1f}%;"></div></div>'
-            f'</div>'
-            f'<div class="compare-row">'
-            f'<div class="compare-label">Base nacional</div>'
-            f'<div class="compare-track"><div class="compare-fill-base" style="width:{base_pct:.1f}%;"></div></div>'
-            f'</div>'
+            f'<div class="compare-row"><div class="compare-label">Organização</div>'
+            f'<div class="compare-track"><div class="compare-fill-org" style="width:{org_pct:.1f}%;"></div></div></div>'
+            f'<div class="compare-row"><div class="compare-label">Base nacional</div>'
+            f'<div class="compare-track"><div class="compare-fill-base" style="width:{base_pct:.1f}%;"></div></div></div>'
             f'<div class="muted" style="margin-top:6px;"><b>{html.escape(prioridade)}:</b> {html.escape(recomendacao)}</div>'
             f'</div>'
         )
@@ -1216,7 +1203,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         '<div id="report-print-root" class="print-only">'
         '<div class="report-wrap">'
         '<div class="publix-band"></div>'
-
         '<div class="report-header">'
         '<div class="report-header-left">'
         '<div class="report-title">Relatório de Diagnóstico — Agenda Estratégica</div>'
@@ -1224,7 +1210,6 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         '</div>'
         + logo_html +
         '</div>'
-
         '<div class="section-print-title">Identificação institucional</div>'
         '<div class="kpi-grid">'
         '<div class="kpi-card"><div class="label">Instituição</div><div class="value">' + instituicao_txt + '</div></div>'
@@ -1232,32 +1217,43 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
         '<div class="kpi-card"><div class="label">Respondente</div><div class="value">' + respondente_txt + '</div></div>'
         '<div class="kpi-card"><div class="label">Cargo / contato</div><div class="value">' + cargo_txt + ' | ' + email_txt + '</div></div>'
         '</div>'
-
         '<div class="section-print-title">Resultado geral</div>'
         '<div class="kpi-grid" style="grid-template-columns: 1fr 1fr 1fr;">'
         '<div class="kpi-card"><div class="label">Score geral</div><div class="value">' + score_geral + '</div></div>'
         '<div class="kpi-card"><div class="label">Nível de maturidade</div><div class="value">' + nivel + '</div></div>'
         '<div class="kpi-card"><div class="label">ID do diagnóstico</div><div class="value">' + diag_id_txt + '</div></div>'
         '</div>'
-
         '<div class="section-print-title">Visual executivo</div>'
         + visual_score_html +
-
         '<div class="section-print-title">Análise por dimensão</div>'
         + html_dim_cards +
-
         '</div>'
         '</div>'
     )
 
     st.markdown(html_relatorio, unsafe_allow_html=True)
 
+
+# =========================================================
+# ETAPA 6 — Chat com IA (só após e-mail confirmado)
+# =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
-st.subheader("4. Converse com a IA sobre o seu diagnóstico")
+st.subheader("5. Converse com a IA sobre o seu diagnóstico")
 
-if not st.session_state.respondente_salvo or st.session_state.diagnostico_perfil_texto is None:
-    st.info("Gere o diagnóstico e preencha os dados de liberação da IA para habilitar o chat.")
+if not st.session_state.email_verificado or st.session_state.diagnostico_perfil_texto is None:
+    if st.session_state.diagnostico_gerado:
+        # Mostra seção "travada" visualmente para incentivar o preenchimento
+        st.markdown(
+            '<div class="locked-section">',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "_Exemplo de análise da IA: 'Sua organização está abaixo da média nacional em Agenda Estratégica. "
+            "Os maiores gaps estão em Definição de Metas e Alinhamento com a Agenda de Desenvolvimento...'_"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.caption("🔒 Confirme seu e-mail acima para desbloquear a IA especialista.")
 else:
     for msg in st.session_state.chat_history:
         if msg["role"] == "user":
@@ -1284,8 +1280,13 @@ else:
                 st.markdown(resposta)
 
         st.session_state.chat_history.append({"role": "assistant", "content": resposta})
+
 st.markdown('</div>', unsafe_allow_html=True)
 
+
+# =========================================================
+# BOTÃO FLUTUANTE DE IMPRESSÃO (só após e-mail confirmado)
+# =========================================================
 if st.session_state.respondente_salvo:
     components.html(
         """
@@ -1294,82 +1295,32 @@ if st.session_state.respondente_salvo:
             try {
                 const rootDoc = window.parent && window.parent.document ? window.parent.document : document;
                 const report = rootDoc.getElementById("report-print-root");
-
-                if (!report) {
-                    alert("Relatório não encontrado para impressão.");
-                    return;
-                }
+                if (!report) { alert("Relatório não encontrado para impressão."); return; }
 
                 const styles = Array.from(rootDoc.querySelectorAll("style, link[rel='stylesheet']"))
-                    .map(el => el.outerHTML)
-                    .join("\\n");
+                    .map(el => el.outerHTML).join("\\n");
 
                 const extraPrintCss = `
                     <style>
                         @page { size: A4; margin: 12mm; }
                         html, body { background: #fff !important; margin: 0; padding: 0; }
-                        body {
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                            font-family: sans-serif;
-                        }
+                        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: sans-serif; }
                         .print-only { display: block !important; }
-                        .report-wrap, .kpi-card, .dim-card, .visual-block {
-                            break-inside: avoid !important;
-                            page-break-inside: avoid !important;
-                        }
-                    </style>
-                `;
+                        .report-wrap, .kpi-card, .dim-card, .visual-block { break-inside: avoid !important; page-break-inside: avoid !important; }
+                    </style>`;
 
                 const printWindow = window.open("", "_blank", "width=1024,height=768");
-                if (!printWindow) {
-                    alert("Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou pop-up.");
-                    return;
-                }
+                if (!printWindow) { alert("Não foi possível abrir a janela de impressão. Verifique se o navegador bloqueou pop-up."); return; }
 
                 printWindow.document.open();
-                printWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="UTF-8" />
-                        <title>Relatório de Diagnóstico</title>
-                        ${styles}
-                        ${extraPrintCss}
-                    </head>
-                    <body>
-                        ${report.outerHTML}
-                    </body>
-                    </html>
-                `);
+                printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8" /><title>Relatório de Diagnóstico</title>${styles}${extraPrintCss}</head><body>${report.outerHTML}</body></html>`);
                 printWindow.document.close();
-
-                printWindow.onload = function() {
-                    printWindow.focus();
-                    printWindow.print();
-                    printWindow.close();
-                };
-            } catch (e) {
-                console.error(e);
-                alert("Erro ao gerar impressão do relatório.");
-            }
+                printWindow.onload = function() { printWindow.focus(); printWindow.print(); printWindow.close(); };
+            } catch (e) { console.error(e); alert("Erro ao gerar impressão do relatório."); }
         }
         </script>
-
         <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999;">
-            <button
-                onclick="printOnlyReport()"
-                style="
-                    background-color: #FFC728;
-                    border: none;
-                    padding: 0.8rem 1.6rem;
-                    border-radius: 999px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    font-size: 0.95rem;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-                "
-            >
+            <button onclick="printOnlyReport()" style="background-color:#FFC728;border:none;padding:0.8rem 1.6rem;border-radius:999px;font-weight:700;cursor:pointer;font-size:0.95rem;box-shadow:0 4px 10px rgba(0,0,0,0.18);">
                 Imprimir / salvar diagnóstico em PDF
             </button>
         </div>
@@ -1377,6 +1328,10 @@ if st.session_state.respondente_salvo:
         height=80,
     )
 
+
+# =========================================================
+# RODAPÉ
+# =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown(
     """
