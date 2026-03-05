@@ -1117,7 +1117,7 @@ for k, v in defaults.items():
 # ETAPA 1 — Dados institucionais
 # =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
-st.subheader("1. Dados institucionais e autorização")
+st.subheader("Dados institucionais e autorização")
 
 with st.form("form_dados_institucionais", clear_on_submit=False):
     l1, l2 = st.columns(2)
@@ -1182,7 +1182,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 # =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
-st.subheader("2. Agenda Estratégica")
+st.subheader("Agenda Estratégica")
 
 if not st.session_state.etapa1_ok:
     st.info("Preencha os dados institucionais e a autorização acima para liberar o diagnóstico.")
@@ -1281,7 +1281,7 @@ if st.session_state.diagnostico_gerado:
 
     st.markdown("---")
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
-    st.subheader("3. Resultado parcial do diagnóstico")
+    st.subheader("Resultado parcial do diagnóstico")
 
     # --- Banner com score e resumo por dimensão ---
     dims_html = ""
@@ -1331,7 +1331,7 @@ if st.session_state.diagnostico_gerado:
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 
 if st.session_state.diagnostico_gerado and not st.session_state.email_verificado:
-    st.subheader("4. Seus dados para receber o relatório")
+    st.subheader("Seus dados para receber o relatório")
 
     with st.form("form_dados_pessoais_pos_diag", clear_on_submit=False):
         c1, c2 = st.columns(2)
@@ -1340,7 +1340,34 @@ if st.session_state.diagnostico_gerado and not st.session_state.email_verificado
             email_respondente = st.text_input("E-mail *")
         with c2:
             area_unidade = st.text_input("Área / Unidade")
-            cargo_funcao = st.text_input("Cargo / Função")
+            cargo_funcao = st.selectbox(
+                "Cargo / Função",
+                [
+                    "",
+                    "Analista",
+                    "Assessor",
+                    "Assistente",
+                    "Auditor",
+                    "Chefe de Gabinete",
+                    "Consultor",
+                    "Coordenador",
+                    "Diretor",
+                    "Especialista",
+                    "Gerente",
+                    "Gestor",
+                    "Ouvidor",
+                    "Prefeito / Vice-Prefeito",
+                    "Presidente / Vice-Presidente",
+                    "Procurador",
+                    "Secretário",
+                    "Servidor Público",
+                    "Subsecretário",
+                    "Superintendente",
+                    "Técnico",
+                    "Vereador / Deputado",
+                    "Outro",
+                ],
+            )
 
         # Campo de confirmação de e-mail
         email_confirmacao = st.text_input(
@@ -1349,7 +1376,7 @@ if st.session_state.diagnostico_gerado and not st.session_state.email_verificado
         )
 
         deseja_contato = st.checkbox(
-            "Assinale se deseja e se concorda em receber comunicados e newsletter, além do PDF.",
+            "Autorizo o compartilhamento do meu e-mail para receber comunicados, novidades e newsletter do Instituto Publix.",
             value=False,
         )
 
@@ -1575,7 +1602,7 @@ if st.session_state.respondente_salvo and st.session_state.registro_salvo:
 # =========================================================
 st.markdown('<div class="no-print">', unsafe_allow_html=True)
 st.markdown("---")
-st.subheader("5. Converse com a IA sobre o seu diagnóstico")
+st.subheader("Converse com a IA sobre o seu diagnóstico")
 
 if not st.session_state.email_verificado or st.session_state.diagnostico_perfil_texto is None:
     if st.session_state.diagnostico_gerado:
