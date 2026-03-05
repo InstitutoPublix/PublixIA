@@ -117,162 +117,258 @@ def formatar_resumo_email(registro: dict, medias_dim: dict) -> str:
 
 
 def gerar_pdf_relatorio(registro: dict, medias_dim: dict) -> bytes:
-    """Gera o PDF do relatório de diagnóstico e retorna como bytes."""
+    """Gera o PDF do relatório fiel ao layout da tela, sem ID do diagnóstico."""
+    from reportlab.graphics.shapes import Drawing, Rect
+    from reportlab.graphics import renderPDF
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=20*mm,
-        leftMargin=20*mm,
-        topMargin=20*mm,
-        bottomMargin=20*mm,
+        rightMargin=18*mm,
+        leftMargin=18*mm,
+        topMargin=16*mm,
+        bottomMargin=16*mm,
     )
 
-    styles = getSampleStyleSheet()
-    amarelo = colors.HexColor("#FFC728")
-    cinza_claro = colors.HexColor("#f8f8f8")
-    cinza_borda = colors.HexColor("#e0e0e0")
-    cinza_texto = colors.HexColor("#444444")
+    PAGE_W = A4[0] - 36*mm  # largura útil
 
-    estilo_titulo = ParagraphStyle("titulo", parent=styles["Normal"],
-        fontSize=16, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"),
-        spaceAfter=4)
-    estilo_subtitulo = ParagraphStyle("subtitulo", parent=styles["Normal"],
-        fontSize=9, fontName="Helvetica", textColor=colors.HexColor("#555555"),
-        spaceAfter=10)
-    estilo_secao = ParagraphStyle("secao", parent=styles["Normal"],
-        fontSize=10, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"),
-        spaceBefore=10, spaceAfter=6, borderPadding=(0,0,2,0))
-    estilo_normal = ParagraphStyle("normal", parent=styles["Normal"],
-        fontSize=9, fontName="Helvetica", textColor=cinza_texto, spaceAfter=3)
-    estilo_label = ParagraphStyle("label", parent=styles["Normal"],
-        fontSize=8, fontName="Helvetica", textColor=colors.HexColor("#888888"))
-    estilo_valor = ParagraphStyle("valor", parent=styles["Normal"],
-        fontSize=9, fontName="Helvetica-Bold", textColor=colors.HexColor("#111111"))
-    estilo_rodape = ParagraphStyle("rodape", parent=styles["Normal"],
-        fontSize=8, fontName="Helvetica", textColor=colors.HexColor("#999999"),
-        alignment=TA_RIGHT)
+    amarelo      = colors.HexColor("#FFC728")
+    amarelo_grad = colors.HexColor("#FFB300")
+    cinza_claro  = colors.HexColor("#f8f8f8")
+    cinza_borda  = colors.HexColor("#e0e0e0")
+    cinza_texto  = colors.HexColor("#444444")
+    cinza_muted  = colors.HexColor("#666666")
+    preto        = colors.HexColor("#111111")
+
+    def s(name, **kw):
+        base = ParagraphStyle(name, fontName="Helvetica", fontSize=9,
+                              textColor=cinza_texto, leading=13)
+        for k, v in kw.items():
+            setattr(base, k, v)
+        return base
+
+    st_titulo    = s("titulo",   fontName="Helvetica-Bold", fontSize=13, textColor=preto, leading=17, spaceAfter=2)
+    st_sub       = s("sub",      fontSize=8,  textColor=colors.HexColor("#555555"), leading=12, spaceAfter=2)
+    st_secao     = s("secao",    fontName="Helvetica-Bold", fontSize=10, textColor=preto, spaceBefore=8, spaceAfter=5)
+    st_label     = s("label",    fontSize=7.5, textColor=colors.HexColor("#888888"), leading=11)
+    st_valor     = s("valor",    fontName="Helvetica-Bold", fontSize=9, textColor=preto, leading=13)
+    st_normal    = s("normal",   fontSize=8.5, textColor=cinza_texto, leading=13)
+    st_muted     = s("muted",    fontSize=8,   textColor=cinza_muted,  leading=12)
+    st_rodape    = s("rodape",   fontSize=7.5, textColor=colors.HexColor("#aaaaaa"), alignment=TA_RIGHT)
+    st_badge_on  = s("badge_on", fontName="Helvetica-Bold", fontSize=7.5,
+                     textColor=preto, backColor=colors.HexColor("#fff3c4"),
+                     borderColor=amarelo, borderWidth=0.5, borderPadding=3)
+    st_badge_off = s("badge_off", fontSize=7.5, textColor=colors.HexColor("#888888"),
+                     backColor=colors.white, borderColor=cinza_borda,
+                     borderWidth=0.5, borderPadding=3)
 
     story = []
 
-    # Faixa amarela topo
-    story.append(Table(
-        [[" "]],
-        colWidths=[170*mm],
-        rowHeights=[4*mm],
-        style=TableStyle([("BACKGROUND", (0,0), (-1,-1), amarelo), ("LINEBELOW", (0,0), (-1,-1), 0, colors.white)])
-    ))
-    story.append(Spacer(1, 6*mm))
+    # ── Faixa amarela topo ──────────────────────────────────────────────
+    story.append(Table([[""]], colWidths=[PAGE_W], rowHeights=[4],
+        style=TableStyle([("BACKGROUND",(0,0),(-1,-1), amarelo),
+                          ("LINEABOVE",(0,0),(-1,-1),0,colors.white)])))
+    story.append(Spacer(1, 5*mm))
 
-    # Título
-    story.append(Paragraph("Relatório de Diagnóstico — Agenda Estratégica", estilo_titulo))
-    story.append(Paragraph(
-        f"Observatório de Governança para Resultados | Emitido em: {registro.get('data_hora', '')}",
-        estilo_subtitulo
-    ))
-    story.append(HRFlowable(width="100%", thickness=1, color=cinza_borda, spaceAfter=8))
+    # ── Cabeçalho: título + logo ────────────────────────────────────────
+    # Logo — tenta carregar do arquivo
+    logo_b64 = file_to_base64(LOGO_PATH)
+    if logo_b64:
+        from reportlab.platypus import Image as RLImage
+        logo_data = base64.b64decode(logo_b64)
+        logo_buf = io.BytesIO(logo_data)
+        logo_img = RLImage(logo_buf, width=28*mm, height=18*mm, kind="proportional")
+        header_data = [[
+            [Paragraph("Relatório de Diagnóstico — Agenda Estratégica", st_titulo),
+             Paragraph("Observatório de Governança para Resultados: Inteligência Artificial", st_sub),
+             Paragraph(f"Emitido em: {registro.get('data_hora','')}", st_sub)],
+            logo_img
+        ]]
+        t_header = Table(header_data, colWidths=[PAGE_W - 32*mm, 32*mm])
+        t_header.setStyle(TableStyle([
+            ("VALIGN",(0,0),(-1,-1),"TOP"),
+            ("ALIGN",(1,0),(1,0),"RIGHT"),
+            ("LEFTPADDING",(0,0),(-1,-1),0),
+            ("RIGHTPADDING",(0,0),(-1,-1),0),
+            ("TOPPADDING",(0,0),(-1,-1),0),
+            ("BOTTOMPADDING",(0,0),(-1,-1),0),
+        ]))
+    else:
+        t_header = Table([[
+            [Paragraph("Relatório de Diagnóstico — Agenda Estratégica", st_titulo),
+             Paragraph("Observatório de Governança para Resultados", st_sub),
+             Paragraph(f"Emitido em: {registro.get('data_hora','')}", st_sub)]
+        ]], colWidths=[PAGE_W])
 
-    # Identificação institucional
-    story.append(Paragraph("Identificação Institucional", estilo_secao))
-    dados_inst = [
-        [Paragraph("Instituição", estilo_label), Paragraph("Classificação", estilo_label)],
-        [Paragraph(str(registro.get("instituicao", "")), estilo_valor),
-         Paragraph(f"{registro.get('poder','')} | {registro.get('esfera','')} | {registro.get('estado_uf','')}", estilo_valor)],
-        [Paragraph("Respondente", estilo_label), Paragraph("Cargo / Contato", estilo_label)],
-        [Paragraph(str(registro.get("nome_respondente", "")), estilo_valor),
-         Paragraph(f"{registro.get('cargo_funcao','')} | {registro.get('email_respondente','')}", estilo_valor)],
-    ]
-    t_inst = Table(dados_inst, colWidths=[85*mm, 85*mm])
+    story.append(t_header)
+    story.append(Spacer(1, 3*mm))
+    story.append(HRFlowable(width="100%", thickness=1, color=cinza_borda, spaceAfter=5))
+
+    # ── Identificação institucional ─────────────────────────────────────
+    story.append(Paragraph("Identificação institucional", st_secao))
+
+    half = PAGE_W / 2 - 1*mm
+    def kpi_cell(label, valor):
+        return [Paragraph(label, st_label), Paragraph(str(valor), st_valor)]
+
+    t_inst = Table([
+        [kpi_cell("Instituição", registro.get("instituicao","")),
+         kpi_cell("Classificação", f"{registro.get('poder','')} | {registro.get('esfera','')} | {registro.get('estado_uf','')}")],
+        [kpi_cell("Respondente", registro.get("nome_respondente","")),
+         kpi_cell("Cargo / contato", f"{registro.get('cargo_funcao','')} | {registro.get('email_respondente','')}")],
+    ], colWidths=[half, half])
     t_inst.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
-        ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
-        ("INNERGRID", (0,0), (-1,-1), 0.5, cinza_borda),
-        ("TOPPADDING", (0,0), (-1,-1), 5),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-        ("LEFTPADDING", (0,0), (-1,-1), 8),
-        ("RIGHTPADDING", (0,0), (-1,-1), 8),
-        ("LINEAFTER", (0,0), (0,-1), 0.5, cinza_borda),
+        ("BACKGROUND",(0,0),(-1,-1), cinza_claro),
+        ("BOX",(0,0),(-1,-1), 0.5, cinza_borda),
+        ("INNERGRID",(0,0),(-1,-1), 0.5, cinza_borda),
+        ("LINEBEFORE",(0,0),(0,-1), 3, amarelo),
+        ("LINEBEFORE",(1,0),(1,-1), 3, amarelo),
+        ("TOPPADDING",(0,0),(-1,-1), 6),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 6),
+        ("LEFTPADDING",(0,0),(-1,-1), 8),
+        ("RIGHTPADDING",(0,0),(-1,-1), 6),
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
     ]))
     story.append(t_inst)
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 5*mm))
 
-    # Resultado geral
-    story.append(Paragraph("Resultado Geral", estilo_secao))
+    # ── Resultado geral (sem ID) ────────────────────────────────────────
+    story.append(Paragraph("Resultado geral", st_secao))
     score_raw = float(registro.get("score_geral", 0) or 0)
-    nivel = str(registro.get("nivel_maturidade", ""))
-    diag_id = str(registro.get("id_resposta", ""))
+    nivel_txt = str(registro.get("nivel_maturidade",""))
 
-    dados_res = [
-        [Paragraph("Score Geral", estilo_label),
-         Paragraph("Nível de Maturidade", estilo_label),
-         Paragraph("ID do Diagnóstico", estilo_label)],
-        [Paragraph(f"{score_raw:.2f} / 3,00", estilo_valor),
-         Paragraph(nivel, estilo_valor),
-         Paragraph(diag_id[:18] + "...", estilo_valor)],
-    ]
-    t_res = Table(dados_res, colWidths=[40*mm, 70*mm, 60*mm])
+    t_res = Table([
+        [kpi_cell("Score geral", f"{score_raw:.2f} / 3,00"),
+         kpi_cell("Nível de maturidade", nivel_txt)],
+    ], colWidths=[half, half])
     t_res.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
-        ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
-        ("INNERGRID", (0,0), (-1,-1), 0.5, cinza_borda),
-        ("TOPPADDING", (0,0), (-1,-1), 5),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-        ("LEFTPADDING", (0,0), (-1,-1), 8),
-        ("RIGHTPADDING", (0,0), (-1,-1), 8),
-        ("LINEBELOW", (0,0), (-1,0), 3, amarelo),
+        ("BACKGROUND",(0,0),(-1,-1), cinza_claro),
+        ("BOX",(0,0),(-1,-1), 0.5, cinza_borda),
+        ("INNERGRID",(0,0),(-1,-1), 0.5, cinza_borda),
+        ("LINEBEFORE",(0,0),(0,-1), 3, amarelo),
+        ("LINEBEFORE",(1,0),(1,-1), 3, amarelo),
+        ("TOPPADDING",(0,0),(-1,-1), 6),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 6),
+        ("LEFTPADDING",(0,0),(-1,-1), 8),
+        ("RIGHTPADDING",(0,0),(-1,-1), 6),
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
     ]))
     story.append(t_res)
-    story.append(Spacer(1, 6*mm))
+    story.append(Spacer(1, 5*mm))
 
-    # Análise por dimensão
+    # ── Visual executivo — barra de maturidade + badges ─────────────────
+    story.append(Paragraph("Visual executivo", st_secao))
+
+    score_pct = max(0.0, min(score_raw / 3.0, 1.0))
+    BAR_W = PAGE_W - 20*mm   # largura da barra dentro do card
+    BAR_H = 8                 # altura em pts
+
+    if score_raw < 1.0:   active = 0
+    elif score_raw < 2.0: active = 1
+    elif score_raw < 2.6: active = 2
+    else:                  active = 3
+    levels = ["Incipiente", "Em estruturação", "Parcialmente estruturado", "Bem estruturado"]
+
+    # desenha barra usando Drawing
+    bar_drawing = Drawing(BAR_W, BAR_H + 2)
+    bar_drawing.add(Rect(0, 1, BAR_W, BAR_H,
+                         fillColor=colors.HexColor("#f1f1f1"), strokeColor=None))
+    bar_drawing.add(Rect(0, 1, BAR_W * score_pct, BAR_H,
+                         fillColor=amarelo, strokeColor=None))
+
+    badges = []
+    for i, lbl in enumerate(levels):
+        st_b = st_badge_on if i == active else st_badge_off
+        badges.append(Paragraph(lbl, st_b))
+
+    visual_content = [
+        [Paragraph("<b>Indicador visual de maturidade</b>", st_normal)],
+        [Paragraph(f"Score geral: <b>{score_raw:.2f}</b> / 3,0", st_normal)],
+        [bar_drawing],
+        [Paragraph("Escala de 0 a 3", st_muted)],
+        [Table([badges], colWidths=[PAGE_W/4 - 6*mm]*4,
+               style=TableStyle([("ALIGN",(0,0),(-1,-1),"CENTER"),
+                                 ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+                                 ("LEFTPADDING",(0,0),(-1,-1),2),
+                                 ("RIGHTPADDING",(0,0),(-1,-1),2)]))],
+    ]
+    t_visual = Table(visual_content, colWidths=[PAGE_W - 16*mm])
+    t_visual.setStyle(TableStyle([
+        ("BOX",(0,0),(-1,-1), 0.5, cinza_borda),
+        ("BACKGROUND",(0,0),(-1,-1), cinza_claro),
+        ("TOPPADDING",(0,0),(-1,-1), 5),
+        ("BOTTOMPADDING",(0,0),(-1,-1), 4),
+        ("LEFTPADDING",(0,0),(-1,-1), 8),
+        ("RIGHTPADDING",(0,0),(-1,-1), 8),
+    ]))
+    story.append(t_visual)
+    story.append(Spacer(1, 5*mm))
+
+    # ── Análise por dimensão ────────────────────────────────────────────
     if medias_dim:
-        story.append(Paragraph("Análise por Dimensão", estilo_secao))
+        story.append(Paragraph("Análise por dimensão", st_secao))
         for dim, media in medias_dim.items():
-            base = 1.92  # observatorio_means
+            base = 1.92
             diff = round(media - base, 2)
             sinal = "+" if diff >= 0 else ""
 
+            org_pct  = max(0.0, min(media / 3.0, 1.0))
+            base_pct = max(0.0, min(base  / 3.0, 1.0))
+
             if media < 1.5:
-                prioridade = "Prioridade alta"
+                prioridade  = "Prioridade alta"
                 recomendacao = "Estruturar fundamentos da agenda estratégica (cenários, objetivos, metas e planos de ação)."
             elif media < 2.0:
-                prioridade = "Prioridade média"
+                prioridade  = "Prioridade média"
                 recomendacao = "Fortalecer consistência e institucionalização das práticas estratégicas."
             else:
-                prioridade = "Prioridade de consolidação"
+                prioridade  = "Prioridade de consolidação"
                 recomendacao = "Padronizar e ampliar a disseminação interna das práticas já existentes."
 
-            dados_dim = [
-                [Paragraph(str(dim), estilo_secao)],
+            DIM_W = PAGE_W - 20*mm
+
+            org_bar = Drawing(DIM_W, BAR_H + 2)
+            org_bar.add(Rect(0,1, DIM_W, BAR_H, fillColor=colors.HexColor("#f1f1f1"), strokeColor=None))
+            org_bar.add(Rect(0,1, DIM_W*org_pct, BAR_H, fillColor=amarelo, strokeColor=None))
+
+            base_bar = Drawing(DIM_W, BAR_H + 2)
+            base_bar.add(Rect(0,1, DIM_W, BAR_H, fillColor=colors.HexColor("#f1f1f1"), strokeColor=None))
+            base_bar.add(Rect(0,1, DIM_W*base_pct, BAR_H, fillColor=colors.HexColor("#cfcfcf"), strokeColor=None))
+
+            dim_rows = [
+                [Paragraph(f"<b>{dim}</b>", st_normal)],
                 [Paragraph(
                     f"Média da organização: <b>{media:.2f}</b> &nbsp;|&nbsp; "
-                    f"Média da base: <b>{base:.2f}</b> &nbsp;|&nbsp; "
+                    f"Base: <b>{base:.2f}</b> &nbsp;|&nbsp; "
                     f"Diferença: <b>{sinal}{diff:.2f}</b>",
-                    estilo_normal
-                )],
-                [Paragraph(f"<b>{prioridade}:</b> {recomendacao}", estilo_normal)],
+                    st_normal)],
+                [Paragraph("<b>Organização</b>", st_muted)],
+                [org_bar],
+                [Paragraph("<b>Base nacional</b>", st_muted)],
+                [base_bar],
+                [Paragraph(f"<b>{prioridade}:</b> {recomendacao}", st_muted)],
             ]
-            t_dim = Table(dados_dim, colWidths=[170*mm])
+            t_dim = Table(dim_rows, colWidths=[DIM_W])
             t_dim.setStyle(TableStyle([
-                ("BACKGROUND", (0,0), (-1,-1), cinza_claro),
-                ("BOX", (0,0), (-1,-1), 0.5, cinza_borda),
-                ("LINEBEFORE", (0,0), (0,-1), 4, amarelo),
-                ("TOPPADDING", (0,0), (-1,-1), 5),
-                ("BOTTOMPADDING", (0,0), (-1,-1), 5),
-                ("LEFTPADDING", (0,0), (-1,-1), 10),
-                ("RIGHTPADDING", (0,0), (-1,-1), 8),
+                ("BOX",(0,0),(-1,-1), 0.5, cinza_borda),
+                ("BACKGROUND",(0,0),(-1,-1), cinza_claro),
+                ("LINEBEFORE",(0,0),(0,-1), 3, amarelo),
+                ("TOPPADDING",(0,0),(-1,-1), 5),
+                ("BOTTOMPADDING",(0,0),(-1,-1), 4),
+                ("LEFTPADDING",(0,0),(-1,-1), 8),
+                ("RIGHTPADDING",(0,0),(-1,-1), 8),
             ]))
             story.append(t_dim)
             story.append(Spacer(1, 4*mm))
 
-    # Rodapé
-    story.append(Spacer(1, 8*mm))
-    story.append(HRFlowable(width="100%", thickness=1, color=cinza_borda, spaceAfter=4))
-    story.append(Paragraph("Desenvolvido pelo Instituto Publix — institutopublix.com.br", estilo_rodape))
+    # ── Rodapé ──────────────────────────────────────────────────────────
+    story.append(Spacer(1, 6*mm))
+    story.append(HRFlowable(width="100%", thickness=0.5, color=cinza_borda, spaceAfter=3))
+    story.append(Paragraph("Desenvolvido pelo Instituto Publix — institutopublix.com.br", st_rodape))
 
     doc.build(story)
     return buffer.getvalue()
-
 
 def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict):
     smtp_host = get_config_value("SMTP_HOST")
@@ -292,31 +388,31 @@ def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict)
         raise Exception(f"Configuração de e-mail incompleta. Faltam: {', '.join(faltando)}.")
 
     nome = registro.get("nome_respondente", "")
-    instituicao = registro.get("instituicao", "")
 
     # Corpo institucional do e-mail
     corpo_html = f"""
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
   <div style="background: linear-gradient(90deg, #FFC728, #FFB300); height: 6px; border-radius: 3px;"></div>
   <div style="padding: 28px 32px;">
-    <p style="font-size: 16px; font-weight: bold; margin-bottom: 4px;">Olá, {nome}!</p>
-    <p style="font-size: 14px; line-height: 1.6; margin-top: 0;">
-      Obrigado por participar do <strong>Observatório da Maturidade em Governança para Resultados</strong>
-      do Instituto Publix.
+    <p style="font-size: 15px; font-weight: bold; margin-bottom: 12px;">Olá, {nome}!</p>
+    <p style="font-size: 14px; line-height: 1.7; margin: 0 0 12px 0;">
+      Agradecemos o seu interesse em participar do <strong>Observatório da Maturidade em Governança
+      para Resultados</strong> do Instituto Publix.
     </p>
-    <p style="font-size: 14px; line-height: 1.6;">
-      Em anexo, você encontra o relatório completo do diagnóstico prévio realizado por
-      <strong>{instituicao}</strong>.
+    <p style="font-size: 14px; line-height: 1.7; margin: 0 0 12px 0;">
+      Em anexo, você encontrará o relatório inicial referente ao diagnóstico realizado.
     </p>
-    <p style="font-size: 14px; line-height: 1.6;">
-      Este é apenas um diagnóstico inicial. Nossa equipe entrará em contato em breve para
-      apresentar as possibilidades de um diagnóstico completo e aprofundado.
+    <p style="font-size: 14px; line-height: 1.7; margin: 0 0 12px 0;">
+      Para a realização do diagnóstico completo e aprofundado, nossa equipe entrará em contato
+      em breve para apresentar as possibilidades e os próximos passos.
     </p>
-    <p style="font-size: 14px; line-height: 1.6;">
-      Qualquer dúvida, estamos à disposição pelo e-mail
-      <a href="mailto:contato@institutopublix.com.br" style="color: #FFC728;">contato@institutopublix.com.br</a>.
+    <p style="font-size: 14px; line-height: 1.7; margin: 0 0 24px 0;">
+      Em caso de dúvidas, permanecemos à disposição pelo e-mail
+      <a href="mailto:contato@institutopublix.com.br" style="color: #FFC728; text-decoration: none;">
+        contato@institutopublix.com.br
+      </a>.
     </p>
-    <p style="font-size: 14px; margin-top: 24px;">
+    <p style="font-size: 14px; line-height: 1.7; margin: 0;">
       Atenciosamente,<br>
       <strong>Instituto Publix</strong>
     </p>
@@ -329,17 +425,16 @@ def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict)
 
     corpo_texto = f"""Olá, {nome}!
 
-Obrigado por participar do Observatório da Maturidade em Governança para Resultados do Instituto Publix.
+Agradecemos o seu interesse em participar do Observatório da Maturidade em Governança para Resultados do Instituto Publix.
 
-Em anexo, você encontra o relatório completo do diagnóstico prévio realizado por {instituicao}.
+Em anexo, você encontrará o relatório inicial referente ao diagnóstico realizado.
 
-Este é apenas um diagnóstico inicial. Nossa equipe entrará em contato em breve para apresentar as possibilidades de um diagnóstico completo e aprofundado.
+Para a realização do diagnóstico completo e aprofundado, nossa equipe entrará em contato em breve para apresentar as possibilidades e os próximos passos.
 
-Qualquer dúvida, estamos à disposição pelo e-mail contato@institutopublix.com.br.
+Em caso de dúvidas, permanecemos à disposição pelo e-mail contato@institutopublix.com.br.
 
 Atenciosamente,
 Instituto Publix
-institutopublix.com.br
 """
 
     # Gera PDF
@@ -1254,7 +1349,7 @@ if st.session_state.diagnostico_gerado and not st.session_state.email_verificado
         )
 
         deseja_contato = st.checkbox(
-            "Assinale esta opção se deseja que façamos contato para um diagnóstico completo.",
+            "Assinale se deseja e se concorda em receber comunicados e newsletter, além do PDF.",
             value=False,
         )
 
