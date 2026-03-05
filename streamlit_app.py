@@ -779,6 +779,7 @@ defaults = {
     # --- novos estados para verificação de e-mail ---
     "email_verificado": False,
     "email_confirmacao_erro": False,
+    "email_erro_msg": None,
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -1074,18 +1075,15 @@ if st.session_state.diagnostico_gerado and not st.session_state.email_verificado
                     st.stop()
 
                 # Envia e-mail com resumo — falha não bloqueia o fluxo
+                email_erro_msg = None
                 try:
                     enviar_resumo_por_email(
                         destinatario=st.session_state.dados_pessoais["email_respondente"],
                         registro=registro,
                         medias_dim=medias_dim,
                     )
-                    st.success(f"Relatório enviado para **{email_respondente.strip()}**. Verifique sua caixa de entrada!")
                 except Exception as e:
-                    st.warning(
-                        f"Os dados foram salvos, mas não conseguimos enviar o e-mail agora ({e}). "
-                        "Você ainda pode acessar o relatório e a IA abaixo."
-                    )
+                    email_erro_msg = str(e)
 
                 # Monta perfil para IA
                 perfil_txt = montar_perfil_texto(
@@ -1101,6 +1099,7 @@ if st.session_state.diagnostico_gerado and not st.session_state.email_verificado
                 st.session_state.email_verificado = True
                 st.session_state.respondente_salvo = True
                 st.session_state.registro_salvo = registro
+                st.session_state.email_erro_msg = email_erro_msg
 
                 st.rerun()
 
@@ -1111,6 +1110,16 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ETAPA 5 — Relatório completo (só após e-mail confirmado)
 # =========================================================
 if st.session_state.respondente_salvo and st.session_state.registro_salvo:
+    # Mostra status do e-mail persistido antes do rerun
+    if st.session_state.get("email_erro_msg"):
+        st.warning(
+            f"⚠️ Dados salvos, mas houve falha no envio do e-mail: {st.session_state.email_erro_msg}\n\n"
+            "Você ainda pode acessar o relatório e a IA abaixo."
+        )
+    else:
+        email_dest = st.session_state.registro_salvo.get("email_respondente", "")
+        st.success(f"✅ Relatório enviado para **{email_dest}**. Verifique sua caixa de entrada!")
+
     r = st.session_state.registro_salvo
     medias_dim = st.session_state.medias_dimensao or {}
 
