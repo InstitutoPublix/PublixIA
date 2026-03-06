@@ -418,7 +418,7 @@ def enviar_resumo_por_email(destinatario: str, registro: dict, medias_dim: dict)
     </p>
   </div>
   <div style="background: #f8f8f8; padding: 12px 32px; font-size: 11px; color: #999; text-align: right; border-top: 1px solid #eee;">
-    Instituto Publix — institutopublix.com.br
+    <strong>Instituto Publix</strong> — institutopublix.com.br
   </div>
 </div>
 """
@@ -434,7 +434,7 @@ Para a realização do diagnóstico completo e aprofundado, nossa equipe entrar�
 Em caso de dúvidas, permanecemos à disposição pelo e-mail contato@institutopublix.com.br.
 
 Atenciosamente,
-Instituto Publix
+Instituto Publix — institutopublix.com.br
 """
 
     # Gera PDF
@@ -906,10 +906,7 @@ SECTION_TITLES = {
     "1.1": "Compreensão do Ambiente Institucional",
     "1.2": "Estabelecimento do Propósito",
     "1.3": "Definição de Resultados",
-    "1.4": "Definição de Objetivos Estratégicos",
-    "1.5": "Definição de Metas",
-    "1.6": "Estratégias e Planos de Ação",
-    "1.7": "Alinhamento com Agenda de Desenvolvimento",
+    "1.4": "Iniciativas Estratégicas",
 }
 
 
@@ -1232,7 +1229,22 @@ else:
     with col1:
         st.button("Anterior", key="btn_anterior", disabled=(pagina == 1), on_click=ir_anterior)
     with col2:
-        st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas), on_click=ir_proximo)
+        if st.button("Próximo", key="btn_proximo", disabled=(pagina == total_paginas)):
+            ir_proximo()
+            st.components.v1.html(
+                """<script>
+                window.parent.document.querySelector('section.main').scrollTo({top: 0, behavior: 'smooth'});
+                var els = window.parent.document.querySelectorAll('h2, h3');
+                for(var i=0;i<els.length;i++){
+                    if(els[i].innerText.includes('Agenda Estratégica')){
+                        els[i].scrollIntoView({behavior:'smooth', block:'start'});
+                        break;
+                    }
+                }
+                </script>""",
+                height=0,
+            )
+            st.rerun()
     with col3:
         ultimo_bloco = (pagina == total_paginas)
         gerar = st.button(
@@ -1272,7 +1284,7 @@ if st.session_state.diagnostico_gerado:
 
     st.markdown("---")
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
-    st.subheader("Resultado parcial do diagnóstico")
+    st.subheader("Resultado parcial do diagnóstico: Agenda Estratégica")
 
     # --- Banner com score e resumo por dimensão ---
     dims_html = ""
